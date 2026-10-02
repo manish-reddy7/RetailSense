@@ -1,0 +1,12 @@
+data/
+mlruns/
+mlflow.db
+.env
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+mlartifacts/
+logs/
+web/public/data/

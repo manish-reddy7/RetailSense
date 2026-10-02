@@ -1,0 +1,94 @@
+{
+  "item_id": "sevai_2",
+  "d": 1839,
+  "D": 0.30446154820781046,
+  "actual": 3.0,
+  "consensus": 3.257017311798272,
+  "final": 3.257017311798272,
+  "critic": {
+    "primary_conflict": "dry run",
+    "conflicting_agents": [],
+    "evidence_assessment": [
+      {
+        "agent": "historical",
+        "strength": "moderate",
+        "reason": "dry run"
+      },
+      {
+        "agent": "calendar",
+        "strength": "moderate",
+        "reason": "dry run"
+      },
+      {
+        "agent": "weather",
+        "strength": "moderate",
+        "reason": "dry run"
+      },
+      {
+        "agent": "trend",
+        "strength": "moderate",
+        "reason": "dry run"
+      }
+    ],
+    "missing_or_stale_evidence": [],
+    "questions_for_agents": []
+  },
+  "revisions": [
+    {
+      "agent_id": "historical",
+      "m_raw": 1.0,
+      "m": 1.0,
+      "y_raw": 3.546272623120806,
+      "y": 3.546272623120806,
+      "initial": 3.546272623120806,
+      "c": 0.6051907810233927,
+      "clipped": false,
+      "held": true,
+      "w": 0.25252207035938584,
+      "rationale": "dry run"
+    },
+    {
+      "agent_id": "calendar",
+      "m_raw": 1.0,
+      "m": 1.0,
+      "y_raw": 2.6086274857538374,
+      "y": 2.6086274857538374,
+      "initial": 2.6086274857538374,
+      "c": 0.6341310894118694,
+      "clipped": false,
+      "held": true,
+      "w": 0.26459771133121146,
+      "rationale": "dry run"
+    },
+    {
+      "agent_id": "weather",
+      "m_raw": 1.0,
+      "m": 1.0,
+      "y_raw": 2.1858223876859295,
+      "y": 2.1858223876859295,
+      "initial": 2.1858223876859295,
+      "c": 0.5949668033463832,
+      "clipped": false,
+      "held": true,
+      "w": 0.2482560106452231,
+      "rationale": "dry run"
+    },
+    {
+      "agent_id": "trend",
+      "m_raw": 1.0,
+      "m": 1.0,
+      "y_raw": 4.810351028110139,
+      "y": 4.810351028110139,
+      "initial": 4.810351028110139,
+      "c": 0.5622970193504195,
+      "clipped": false,
+      "held": true,
+      "w": 0.23462420766417968,
+      "rationale": "dry run"
+    }
+  ],
+  "action": {
+    "action": "HOLD",
+    "qty": 0
+  }
+}
