@@ -320,3 +320,71 @@ every agent holds). Full write-up: `reports/RESULTS.md`; paper §5 drafted from 
 - No multi-seed evidence; one LLM (8B local).
 - `git_commit` is tagged on the MLflow run after the results commit (the run itself logged
   "uncommitted" because nothing was committed before it).
+
+## Next-week forecast (2026-10-03, after the experiment)
+- `python -m retailsense.forecast_future` → `reports/india/future_forecast.csv`, shown on the web
+  app's new **Next week** page. Every model is refit on all data up to d_1941 (test included; the
+  experiment is finished) and forecasts 29 Apr – 5 May 2024 for all 60 items with three systems:
+  RetailSense (routed by the frozen τ, LLM when D ≥ τ), LightGBM all features (most accurate in
+  testing) and ETS (cheapest in testing). Each system's (s, S) decision starts from its own stock on
+  the last test day (`inventory_state` of the final run). The frozen config file is unchanged.
+- First run: RetailSense would order 3,666 units now (10 items), LightGBM 474 (2 items),
+  ETS 1,278 (3 items). RetailSense sent 36 of 60 items to the LLM: D is high for most items on
+  some days (the test run's daily trigger rate ranged 3–100 %, 97 % on 28 Apr), not a bug.
+  Deliberation changed the day-1 total only from 1,569 to 1,566 units on those items; the larger
+  order comes from RetailSense's lower starting stock and ~14 % higher forecast than LightGBM.
+- Limitation: "future" means after the data ends (28 Apr 2024). Weather for those days is the
+  observed archive, as in the experiment; a real deployment would use the Open-Meteo forecast API
+  and current store sales.
+
+---
+
+## Real-data study: Rohlik (2026-10-03)
+Data: Kaggle *Rohlik Sales Forecasting Challenge v2* (real daily sales of a Czech online grocer),
+warehouse Prague_1, 1 Aug 2020 – 2 Jun 2024 (d_1 … d_1402). Config
+`configs/experiment_rohlik.yaml` (dataset `rohlik`), run with
+`RETAILSENSE_CONFIG=configs/experiment_rohlik.yaml`. Kaggle's own test period has no public sales,
+so only `sales_train.csv` is used, with the same split lengths as India: train to d_1260
+(12 Jan 2024), validation 86 days, test 56 days (8 Apr – 2 Jun 2024).
+
+### Built
+- `data/rohlik.py`: converts the Kaggle files into the raw layout (wide daily sales, calendar with
+  Czech holidays typed Religious / National / Cultural, weekly mean list price). A day without a
+  sales record is left missing (not offered), never zero. Items must have a record on every day
+  from d_1000 (27 Apr 2023): 63 of 857 qualify; the top 60 by train volume are used. This uses
+  presence (not sales) in the evaluation period and is a stated selection rule.
+- Config `source:` block (`SourceCfg`). ETS `fit_window` 91 days for Rohlik so its input never
+  contains a gap. Training rows now require an observed target (`sales.notna()`); India has no
+  missing days, so its frozen results are unchanged.
+- No search-interest data exists for Rohlik, so the Trend agent is skipped (3 agents).
+  Discounts and `total_orders` are not used (the agent design is unchanged).
+
+### Validation results (no test data read)
+- h1 WAPE: seasonal naive 0.252, ETS 0.173, Historical 0.172, +Calendar 0.173,
+  +Weather 0.176, LightGBM all features **0.162**.
+- Agent forecast correlation 0.994–0.997 (fails the 0.95 gate, as in India).
+- H1: ρ = 0.099 [0.053, 0.135], AUROC = 0.570 [0.535, 0.595] — stronger than India
+  (0.064 / 0.535). Provisional τ = 0.0654. **Not frozen.**
+- Inventory (validation): Historical cheapest $193k; multi-agent confidence $251k; ETS $273k;
+  LightGBM all features $422k (narrow bands, high lost sales); seasonal naive $552k.
+- Running: the 1,500-case LLM validation (llama3.1, prompt v1 unchanged, 4 workers).
+
+### Rohlik LLM validation (finished 2026-10-03 08:51) and freeze
+1,500 stratified validation cases, llama3.1, prompt v1, 6,060 LLM calls (2,626 in / 521 out
+tokens per deliberated case).
+
+| arm | WAPE | trigger rate | LLM calls / 1000 |
+|---|---|---|---|
+| no_deliberation | 0.1619 | 0 | 0 |
+| always_on | **0.1602** | 1.0 | 4,040 |
+| selective (D ≥ τ) | 0.1618 | 0.20 | 811 |
+| random, same rate | 0.1615 (sd 0.0006) | 0.20 | 808 |
+
+- H2 (299 triggered): 24.4 % improved / 29.4 % worsened, mean |err| 51.21 → 51.01, p = 0.26.
+- Gates: trigger 20 %; hold rate 55.3 % (historical 45 %, calendar 61 %, weather 59 %);
+  fallback 0.3 %; clip 0.8 %.
+- Reading: on real data, deliberating every case lowers WAPE by about 1 %, but selecting by D is
+  no better than random at the 20 % rate.
+- **Frozen 2026-10-03** (author: "okay" to "freeze rohlik"): τ = 0.065352 from
+  `deliberation_eval --freeze`; the replay made 0 LLM calls and reproduced every number.
+  Prompt v1 (same text as India) marked FROZEN. Dry run + final test run started.

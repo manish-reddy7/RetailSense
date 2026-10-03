@@ -142,6 +142,20 @@ class FinalCfg(_Strict):
         return [(_day(a), _day(b)) for a, b in v]
 
 
+class SourceCfg(_Strict):
+    """A public dataset converted into the raw file layout (see data/rohlik.py)."""
+
+    dir: Path
+    warehouse: str
+    start: str  # date of d_1
+    complete_from: int  # keep items with a record on every day from here to the end
+
+    @field_validator("complete_from", mode="before")
+    @classmethod
+    def _parse_day(cls, v):
+        return _day(v)
+
+
 class MlflowCfg(_Strict):
     tracking_uri: str
 
@@ -161,6 +175,7 @@ class ExperimentCfg(_Strict):
     ets: EtsCfg
     mlflow: MlflowCfg
     final: FinalCfg | None = None
+    source: SourceCfg | None = None
 
     def path(self, name: str) -> Path:
         return ROOT / getattr(self.paths, name)

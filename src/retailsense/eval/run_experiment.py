@@ -195,7 +195,8 @@ def run_validation(
     horizons = cfg.agents.horizons
     feats = pd.read_parquet(cfg.path("processed") / "features.parquet")
     feats.attrs["store"] = d.store
-    train = feats[(feats.d <= fit_end) & feats.launched]
+    # a day with no sales record (item not offered) is unknown, so it is never a training target
+    train = feats[(feats.d <= fit_end) & feats.launched & feats.sales.notna()]
     origins = list(range(fit_end, last))  # forecast made at end of day p
     # Forecast every horizon from every origin (targets past `last` feed the inventory
     # simulator; they use data up to the origin only). Only targets in the window are scored.
