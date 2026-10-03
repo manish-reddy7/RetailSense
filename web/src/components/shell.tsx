@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import {
   BarChart3,
+  CalendarClock,
   CalendarDays,
   Database,
   FlaskConical,
@@ -21,6 +22,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/forecast", label: "Forecast", icon: TrendingUp },
+  { href: "/next-week", label: "Next week", icon: CalendarClock },
   { href: "/explain", label: "Explain", icon: MessagesSquare },
   { href: "/evaluate", label: "Evaluate", icon: BarChart3 },
   { href: "/live", label: "Live demo", icon: Radio },

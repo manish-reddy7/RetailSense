@@ -69,6 +69,7 @@ The steps, which can also be run one by one:
 | Deliberation arms (validation) | `python -m retailsense.eval.deliberation_eval [--freeze]` | `reports/india/phase3b_*` |
 | Inventory (validation) | `python -m retailsense.eval.inventory_eval` | `reports/india/phase4_*` |
 | **Final test run** | `python -m retailsense.eval.run_experiment --final` | `reports/india/final/`, MLflow `india_phase5` |
+| **Next-week forecast + orders** (after the experiment) | `python -m retailsense.forecast_future` | `reports/india/future_forecast.csv` |
 | Pipeline dry run (validation, stub LLM) | `python -m retailsense.eval.run_experiment --dry-run` | `reports/india/dryrun/` |
 
 **The test split is touched once.** `--final` refuses to run unless tau is frozen in the
