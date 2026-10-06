@@ -136,9 +136,21 @@ export function Shell({ children }: { children: ReactNode }) {
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex flex-wrap items-center gap-2 border-b border-border bg-background/80 px-4 py-2.5 backdrop-blur md:sticky md:top-0 md:z-10 md:px-10">
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold tracking-wide">
-            INDIA · MUM_1
-          </span>
+          {s.meta && (
+            <>
+              <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase">
+                {s.meta.dataset} · {s.meta.store}
+              </span>
+              <span
+                className={cn(
+                  "rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                  s.meta.real_data ? "border-good/40 text-good" : "border-brand/40 text-brand",
+                )}
+              >
+                {s.meta.real_data ? "real sales" : "simulated sales"}
+              </span>
+            </>
+          )}
           <span className="min-w-0 truncate text-xs text-muted-foreground">{s.meta?.label}</span>
           {s.meta && (
             <span className="ml-auto flex flex-wrap gap-1.5 text-[11px]">

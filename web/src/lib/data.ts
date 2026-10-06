@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 
 // Shapes written by `python -m retailsense.web_export` (web/public/data/<dataset>/).
 
@@ -64,6 +64,8 @@ export type Experiment = {
 export type Meta = {
   dataset: string;
   label: string;
+  real_data: boolean;
+  agents: string[];
   store: string;
   exported_at: string;
   model: string;
@@ -102,7 +104,20 @@ export const useTables = (ds?: string) =>
     enabled: !!ds,
   });
 
-export const useCases = (ds?: string, exp?: string, item?: string) =>
+/** Meta + tables of every exported dataset, for cross-study views. */
+export const useStudies = (datasets: string[]) =>
+  useQueries({
+    queries: datasets.map((ds) => ({
+      queryKey: ["study", ds],
+      queryFn: async () => ({
+        ds,
+        meta: await getJSON<Meta>(`${base(ds)}/meta.json`),
+        tables: await getJSON<Tables>(`${base(ds)}/tables.json`),
+      }),
+    })),
+  });
+
+export const useCases =(ds?: string, exp?: string, item?: string) =>
   useQuery({
     queryKey: ["cases", ds, exp, item],
     queryFn: () => getJSON<Case[]>(`${base(ds!)}/runs/${exp}/${encodeURIComponent(item!)}.json`),

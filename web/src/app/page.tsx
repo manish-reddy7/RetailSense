@@ -1,36 +1,32 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, CircleDashed, Lock, ShieldCheck } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, CircleSlash, CircleDot, ShieldCheck, TriangleAlert } from "lucide-react";
 import Link from "next/link";
-import { Empty, Kpi, Loading, PageHeader, Problem, Section, cell } from "@/components/common";
-import { useTables, type Row } from "@/lib/data";
+import type { ReactNode } from "react";
+import { Empty, Kpi, Loading, PageHeader, Problem, Section } from "@/components/common";
+import { useStudies, type Meta } from "@/lib/data";
+import { nice, summarise, type Summary, type Verdict } from "@/lib/results";
 import { useSelection } from "@/lib/selection";
 import { cn } from "@/lib/utils";
 
-type Status = "done" | "open" | "locked";
+const VERDICT: Record<Verdict, { label: string; icon: typeof CheckCircle2; cls: string }> = {
+  supported: { label: "Supported", icon: CheckCircle2, cls: "border-good/40 bg-good/10 text-good" },
+  weak: { label: "Weak", icon: CircleDot, cls: "border-deliberate/40 bg-deliberate/10 text-deliberate" },
+  "not supported": { label: "Not supported", icon: CircleSlash, cls: "border-border bg-muted text-muted-foreground" },
+  "no data": { label: "No data", icon: CircleSlash, cls: "border-border text-muted-foreground" },
+};
 
-function Phase({ n, title, status, note, i }: { n: string; title: string; status: Status; note: string; i: number }) {
-  const Icon = { done: CheckCircle2, open: CircleDashed, locked: Lock }[status];
+function Chip({ v }: { v: Verdict }) {
+  const { label, icon: Icon, cls } = VERDICT[v];
   return (
-    <li
-      data-index={i}
-      className={cn(
-        "rounded-xl border p-3",
-        status === "done" ? "border-good/30 bg-good/5" : status === "open" ? "border-deliberate/40 bg-deliberate/5" : "border-border bg-muted/40",
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <span className="num text-xs text-muted-foreground">{n}</span>
-        <Icon
-          className={cn("size-4", status === "done" ? "text-good" : status === "open" ? "text-deliberate" : "text-muted-foreground")}
-          aria-label={status}
-        />
-      </div>
-      <p className="mt-1 text-sm font-medium">{title}</p>
-      <p className="text-xs text-muted-foreground">{note}</p>
-    </li>
+    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap", cls)}>
+      <Icon className="size-3.5" aria-hidden /> {label}
+    </span>
   );
 }
+
+const usd = (x: number) => `$${Math.round(x / 1000).toLocaleString()}k`;
+const studyName = (m: Meta) => (m.real_data ? "Rohlik · real sales" : "India · simulated");
 
 function Node({ title, text, tone = "border-border" }: { title: string; text: string; tone?: string }) {
   return (
@@ -43,84 +39,148 @@ function Node({ title, text, tone = "border-border" }: { title: string; text: st
 
 const Arrow = () => <ArrowRight className="hidden size-4 shrink-0 text-muted-foreground lg:block" aria-hidden />;
 
-const find = (rows: Row[] | undefined, key: string, name: string) => rows?.find((r) => r[key] === name);
+function List({ icon: Icon, tone, items }: { icon: typeof ShieldCheck; tone: string; items: ReactNode[] }) {
+  return (
+    <ul className="grid gap-2.5 text-sm">
+      {items.map((x, i) => (
+        <li key={i} className="flex gap-2">
+          <Icon className={cn("mt-0.5 size-4 shrink-0", tone)} aria-hidden />
+          <span>{x}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function Overview() {
   const s = useSelection();
-  const tables = useTables(s.dataset);
+  const studies = useStudies(s.datasets);
   if (s.error) return <Problem error={s.error} />;
-  if (!s.meta || tables.isPending) return <Loading />;
-  const t = tables.data ?? {};
-  const v = t.validation ?? {};
-  const h1 = find(v.h1_summary, "Unnamed: 0", "D");
-  const inv = v.phase4_inventory;
-  const best = inv?.length ? inv.reduce((a, b) => ((a.total_cost as number) <= (b.total_cost as number) ? a : b)) : undefined;
-  const exps = s.meta.experiments;
-  const deciles = (v.h1_deciles_D ?? []).map((r) => Number(r.mean_rel_err));
-  const cases = Object.values(exps).reduce((n, e) => n + e.n_cases, 0);
+  if (!s.meta || studies.some((q) => q.isPending)) return <Loading />;
 
-  const phases: { n: string; title: string; status: Status; note: string }[] = [
-    { n: "P1-2", title: "Agents & baselines", status: "done", note: "per-horizon models, context agents" },
-    { n: "P3a", title: "H1 on validation", status: v.h1_summary ? "done" : "open", note: "does D predict error?" },
-    { n: "P3b", title: "Deliberation pilot", status: exps.phase3b_pilot ? "done" : "open", note: "critic + one revision" },
-    { n: "P3b", title: "Full validation arms", status: exps.phase3b || v.phase3b_arms ? "done" : "open", note: "needs LLM credits" },
-    { n: "P4", title: "Inventory simulator", status: inv ? "done" : "open", note: "(s, S), 6 systems" },
-    { n: "P5", title: "Pipeline dry run", status: t.dryrun ? "done" : "open", note: "stub LLM, validation" },
-    { n: "τ", title: "Freeze τ & prompt", status: s.meta.tau_frozen === null ? "open" : "done", note: "before any test data" },
-    { n: "P5a", title: "Final test run", status: t.final ? "done" : "locked", note: "touched once" },
-  ];
+  const all = studies
+    .map((q) => q.data)
+    .filter((d) => d !== undefined)
+    .map((d) => ({ ...d, sum: summarise(d.tables) }))
+    .filter((d): d is typeof d & { sum: Summary } => d.sum !== undefined);
+  const cur = all.find((d) => d.ds === s.dataset);
+  const saved = all.map((d) => d.sum.callsSaved);
+  const savedRange = saved.length
+    ? `${Math.round(100 * Math.min(...saved))}–${Math.round(100 * Math.max(...saved))}%`
+    : "–";
+  const exps = s.meta.experiments;
 
   return (
     <>
       <PageHeader
-        eyebrow="Research capstone · results viewer"
+        eyebrow="Research capstone · final results"
         title={
           <>
             Does disagreement tell us <em className="text-brand">when</em> to think harder?
           </>
         }
       >
-        Specialised agents forecast daily demand. When they disagree beyond a calibrated threshold τ, an LLM
-        critic and one bounded revision round step in, and the forecast drives an (s, S) restocking policy.
+        <p>
+          <span className="font-medium text-foreground">Short answer: only a little.</span> Across a simulated kirana
+          store and real grocery sales, disagreement between the agents is a weak but real warning sign. The LLM
+          critic did not reliably fix the forecasts it flagged, and simpler models were more accurate and cheaper.
+          Triggering the LLM only on disagreement still cut LLM calls by {savedRange}.
+        </p>
       </PageHeader>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi
-          index={0}
-          tone={s.meta.tau_frozen === null ? "deliberate" : "good"}
-          label="Threshold τ"
-          value={s.meta.tau_frozen === null ? "open" : s.meta.tau_frozen.toFixed(3)}
-          hint="80th percentile of validation D, frozen before test"
-        />
-        <Kpi
-          index={1}
-          tone="brand"
-          label="H1 · AUROC of D"
-          value={h1 ? cell(h1.auroc_worst) : "–"}
-          hint={h1 ? `Spearman ρ ${cell(h1.spearman)}; 0.5 = no signal` : "not run"}
-          spark={deciles}
-        />
-        <Kpi
-          index={2}
-          tone="fast"
-          label="Cheapest inventory (val.)"
-          value={best ? `$${Math.round(Number(best.total_cost) / 1000)}k` : "–"}
-          hint={best ? String(best.system).replaceAll("_", " ") : "Phase 4 not run"}
-        />
-        <Kpi index={3} tone="muted" label="Stored cases" value={cases.toLocaleString()} hint={`${Object.keys(exps).length} run${Object.keys(exps).length === 1 ? "" : "s"} exported`} />
-      </div>
+      {cur ? (
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <Kpi index={0} tone="good" label="Most accurate system" value={cur.sum.best.wape.toFixed(3)} hint={`${nice(cur.sum.best.system)} · next-day WAPE`} />
+            <Kpi
+              index={1}
+              tone="deliberate"
+              label="RetailSense WAPE"
+              value={cur.sum.rs.wape.toFixed(3)}
+              hint={`95% CI [${cur.sum.rs.lo.toFixed(3)}, ${cur.sum.rs.hi.toFixed(3)}]`}
+            />
+            <Kpi index={2} tone="brand" label="LLM calls avoided" value={`${Math.round(100 * cur.sum.callsSaved)}%`} hint={`vs deliberating every case · trigger rate ${(100 * cur.sum.triggerRate).toFixed(1)}%`} />
+            <Kpi index={3} tone="fast" label="Lowest inventory cost" value={usd(cur.sum.cheapest.cost)} hint={`${nice(cur.sum.cheapest.system)} · RetailSense ${usd(cur.sum.rsCost)}`} />
+          </div>
 
-      <Section eyebrow="Progress" title="Where the experiment stands" description="Derived from the exported results; the test split stays locked until τ is frozen.">
-        <ol className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
-          {phases.map((p, i) => (
-            <Phase key={p.title} i={i} {...p} />
-          ))}
-        </ol>
-      </Section>
+          <Section
+            eyebrow={`Final test run · ${studyName(s.meta)}`}
+            title="Five hypotheses, one locked test"
+            description={`${cur.sum.points.toLocaleString()} forecasts on the untouched test split. A hypothesis counts as supported only if its planned test is significant.`}
+          >
+            <ol className="grid gap-2">
+              {cur.sum.hyps.map((h) => (
+                <li key={h.id} className="grid gap-1 rounded-xl border border-border p-3 md:grid-cols-[3rem_1fr_auto] md:items-center md:gap-4">
+                  <span className="num text-sm font-semibold text-brand">{h.id}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{h.question}</p>
+                    <p className="num text-xs text-muted-foreground">{h.evidence}</p>
+                  </div>
+                  <Chip v={h.verdict} />
+                </li>
+              ))}
+            </ol>
+          </Section>
+        </>
+      ) : (
+        <Empty>No final test run exported for this dataset.</Empty>
+      )}
+
+      {all.length > 1 && (
+        <Section eyebrow="Replication" title="Two studies, same protocol" description="Same code, prompt and LLM. Only the data, the dates and the number of agents differ.">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[36rem] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="py-2 pr-4 font-medium" />
+                  {all.map((d) => (
+                    <th key={d.ds} className="py-2 pr-4 font-medium">
+                      {studyName(d.meta)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="num">
+                {(
+                  [
+                    ["Agents", (d) => d.meta.agents.length],
+                    ["Frozen τ", (d) => d.meta.tau_frozen?.toFixed(4) ?? "–"],
+                    ["Most accurate", (d) => `${nice(d.sum.best.system)} (${d.sum.best.wape.toFixed(3)})`],
+                    ["RetailSense WAPE", (d) => d.sum.rs.wape.toFixed(3)],
+                    ["Cheapest inventory", (d) => `${nice(d.sum.cheapest.system)} (${usd(d.sum.cheapest.cost)})`],
+                    ["Agents kept forecast after critique", (d) => `${(100 * d.sum.holdRate).toFixed(1)}%`],
+                  ] as [string, (d: (typeof all)[number]) => ReactNode][]
+                ).map(([label, f]) => (
+                  <tr key={label} className="border-b border-border/60">
+                    <td className="py-2 pr-4 font-sans text-muted-foreground">{label}</td>
+                    {all.map((d) => (
+                      <td key={d.ds} className="py-2 pr-4">
+                        {f(d)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+                {all[0].sum.hyps.map((h, i) => (
+                  <tr key={h.id} className="border-b border-border/60">
+                    <td className="py-2 pr-4 font-sans text-muted-foreground">
+                      {h.id} · {h.question}
+                    </td>
+                    {all.map((d) => (
+                      <td key={d.ds} className="py-2 pr-4">
+                        <Chip v={d.sum.hyps[i].verdict} />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
 
       <Section eyebrow="Method" title="One forecast, two paths" description="The LLM never writes a forecast or an order; code computes every number.">
         <div className="flex flex-col items-stretch gap-3 lg:flex-row lg:items-center">
-          <Node title="4 agents" text="Historical · Calendar · Weather · Trend, with 10-90% bands" />
+          <Node title={`${s.meta.agents.length} agents`} text={`${s.meta.agents.map(nice).join(" · ")}, each with a 10–90% band`} />
           <Arrow />
           <Node title="Disagreement D" text="confidence-weighted spread of day-1 forecasts" tone="border-brand/40" />
           <Arrow />
@@ -131,11 +191,69 @@ export default function Overview() {
             </div>
             <div className="flex items-center gap-2 rounded-xl border border-deliberate/40 bg-deliberate/5 p-2.5">
               <span className="shrink-0 rounded-md bg-deliberate/20 px-1.5 text-xs font-medium whitespace-nowrap text-deliberate">D ≥ τ</span>
-              <span className="text-sm">critic report → one bounded revision</span>
+              <span className="text-sm">LLM critic → one bounded revision, clipped by code</span>
             </div>
           </div>
           <Arrow />
           <Node title="(s, S) policy" text="RESTOCK · HOLD · REDUCE in one shared simulator" />
+        </div>
+      </Section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Section eyebrow="Integrity" title="How the test was protected">
+          <List
+            icon={ShieldCheck}
+            tone="text-good"
+            items={[
+              "τ and the prompt were frozen on validation before the test split was read.",
+              "Each dataset's test split was evaluated by one locked run. Interrupted runs resumed with the same config and replayed cached LLM answers.",
+              "Every feature records when it became available; tests check that none is newer than the forecast time.",
+              "Missing sales stay missing, never zero-filled. An invalid agent is excluded, never counted as zero.",
+              "All nine systems go through the same (s, S) inventory simulator.",
+            ]}
+          />
+        </Section>
+        <Section eyebrow="Read with care" title="Limitations">
+          <List
+            icon={TriangleAlert}
+            tone="text-deliberate"
+            items={[
+              "The agents agree too much (correlation above the 0.95 design gate), so D mostly measures small adjustments.",
+              "One model seed; differences below about 0.001 WAPE should not be over-read.",
+              "Observed weather stands in for a perfect forecast (tested with a noise ablation).",
+              "One small local LLM (Llama 3.1 8B); a stronger critic might behave differently.",
+              "India sales are simulated with known drivers; Rohlik is real but has no search-interest data, so no Trend agent.",
+            ]}
+          />
+        </Section>
+      </div>
+
+      <Section eyebrow="Related work" title="Base paper: MARIOD (Yang et al., Sensors 2025)" description="Same problem, joint forecasting and restocking with specialised agents, approached differently.">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[36rem] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                <th className="py-2 pr-4 font-medium" />
+                <th className="py-2 pr-4 font-medium">MARIOD</th>
+                <th className="py-2 pr-4 font-medium">RetailSense</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["Agents are…", "supply-chain levels (store, DC, HQ)", "evidence sources (history, calendar, weather, interest)"],
+                ["Coordination", "learned messages, trained jointly", "disagreement score + one LLM revision"],
+                ["Orders", "learned RL policy", "fixed (s, S) formula"],
+                ["Evaluation", "70/15/15 split, zero-filled sales, point estimates", "frozen τ, one locked test run, bootstrap CIs"],
+                ["Question", "how accurate can a joint deep system be?", "does disagreement tell us when LLM reasoning is worth it?"],
+              ].map(([k, a, b]) => (
+                <tr key={k} className="border-b border-border/60">
+                  <td className="py-2 pr-4 text-muted-foreground">{k}</td>
+                  <td className="py-2 pr-4">{a}</td>
+                  <td className="py-2 pr-4">{b}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </Section>
 
@@ -167,8 +285,9 @@ export default function Overview() {
       </Section>
 
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
-        <ShieldCheck className="size-4" aria-hidden />
-        Exported {s.meta.exported_at}. Every result is reported, including where RetailSense does not win.
+        <BookOpen className="size-4" aria-hidden />
+        Exported {s.meta.exported_at}. Every result is reported, including where RetailSense does not win. Full write-up:
+        docs/paper and reports/RESULTS.md.
       </p>
     </>
   );

@@ -186,9 +186,16 @@ def main() -> None:
             print(f"exporting {exp} ({n} cases) ...", flush=True)
             exps[exp] = {"label": label, **export_run(cfg, exp, db, tag, inv_prefix, dates, out)}
     lat, lon = cfg.weather.city[cfg.data.state]
+    with sqlite3.connect(cfg.path("db")) as con:
+        agents = [r[0] for r in con.execute("SELECT DISTINCT agent_id FROM agent_predictions")]
+    real = cfg.source is not None
     meta = {
         "dataset": cfg.dataset,
-        "label": f"{cfg.data.store} kirana store, India",
+        "label": f"{cfg.data.store} · Rohlik online grocer, Prague (real sales)"
+        if real
+        else f"{cfg.data.store} · kirana store, Mumbai (simulated sales)",
+        "real_data": real,
+        "agents": sorted(agents, key=["historical", "calendar", "weather", "trend"].index),
         "store": cfg.data.store,
         "exported_at": datetime.now().isoformat(timespec="seconds"),
         "model": cfg.deliberation.model,
