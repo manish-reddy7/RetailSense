@@ -1,4 +1,5 @@
-"""Load the raw sales files, select the frozen subset (store/dept/top-N by train volume), write configs/subset.yaml.
+"""Load the raw sales files, select the frozen subset (store/dept/top-N by train volume), write
+configs/subset.yaml.
 
 Run: python -m retailsense.data.load
 """

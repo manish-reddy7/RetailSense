@@ -122,7 +122,8 @@ def main() -> None:
     path = cfg.path("processed") / "weather.parquet"
     feats.to_parquet(path, index=False)
     print(
-        f"wrote {path}: {len(feats):,} days, {feats.date.min():%Y-%m-%d}..{feats.date.max():%Y-%m-%d}"
+        f"wrote {path}: {len(feats):,} days, "
+        f"{feats.date.min():%Y-%m-%d}..{feats.date.max():%Y-%m-%d}"
     )
     print(feats.drop(columns="date").isna().mean().round(4).to_string())
 

@@ -107,9 +107,12 @@ def main() -> None:
     t = trends_table(cfg)
     path = cfg.path("processed") / "trends.parquet"
     t.to_parquet(path, index=False)
-    print(f"wrote {path}: {len(t)} weeks {t.week_start.min():%Y-%m-%d}..{t.week_start.max():%Y-%m-%d}")
+    print(
+        f"wrote {path}: {len(t)} weeks {t.week_start.min():%Y-%m-%d}..{t.week_start.max():%Y-%m-%d}"
+    )
     print("retrieved:", retrieval_log(cfg))
-    print("NaN share:", np.round(t.drop(columns=["week_start", "available_at"]).isna().mean().mean(), 4))
+    nan_share = t.drop(columns=["week_start", "available_at"]).isna().mean().mean()
+    print("NaN share:", np.round(nan_share, 4))
 
 
 if __name__ == "__main__":

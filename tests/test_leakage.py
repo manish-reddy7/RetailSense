@@ -263,3 +263,55 @@ def test_trends_features_are_scale_invariant():
     pd.testing.assert_frame_equal(
         weekly_features(s, "x"), weekly_features(s * 0.123, "x"), check_exact=False, rtol=1e-9
     )
+
+
+def test_actuals_isolated():
+    """Agent and orchestrator code has no read path to the evaluation store (where actuals live),
+    and the LLM payload carries no target-day value."""
+    import ast
+    from datetime import date
+    from pathlib import Path
+
+    import retailsense
+    from retailsense.orchestrator.critic import critic_payload
+
+    root = Path(retailsense.__file__).parent
+    banned_mods = ("retailsense.store", "retailsense.eval", "sqlite3")
+    allowed = {"retailsense.eval.metrics"}  # pure error functions, no data access
+    banned_names = {"forecast_runs", "evaluation_results", "inventory_state", "actual"}
+    for f in [*(root / "agents").glob("*.py"), *(root / "orchestrator").glob("*.py")]:
+        tree = ast.parse(f.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom | ast.Import):
+                mods = [node.module] if isinstance(node, ast.ImportFrom) else [
+                    a.name for a in node.names
+                ]
+                for m in mods:
+                    assert m in allowed or not m.startswith(banned_mods), f"{f.name} imports {m}"
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                assert node.value not in banned_names, f"{f.name} references {node.value!r}"
+
+    case = {
+        "dataset": "india",
+        "item_id": "milk_1",
+        "store_id": "MUM_1",
+        "origin": 1800,
+        "history_end_d": 1800,
+        "target_date": date(2016, 1, 3),
+        "history": [10.0] * 14,
+        "agents": [],
+        "actual": 12345.0,  # even if a caller leaked it into the case, it must not reach the LLM
+    }
+    assert "12345" not in str(critic_payload(case, 0.1))
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="Known, disclosed deviation: weather comes from the Open-Meteo OBSERVATION archive used "
+    "as a perfect forecast (data/weather.py, paper Section 6.6), tested with a noise ablation. "
+    "Switching to the historical-forecast API makes this pass; then remove this marker.",
+)
+def test_weather_is_forecast():
+    from retailsense.data import weather
+
+    assert "archive-api" not in weather.URL, "the observation endpoint is used"

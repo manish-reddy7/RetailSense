@@ -53,3 +53,19 @@ def test_invalid(kw):
 
 def test_zero_forecast_allowed():
     assert make(lower=[0, 0, 0], forecast=[0, 0, 0], upper=[0, 1, 2]).forecast[0] == 0
+
+
+def test_invalid_agent_output(cfg):
+    """Invalid agent output -> the agent abstains (excluded), never becomes a zero forecast."""
+    from retailsense.orchestrator.disagreement import consensus
+    from retailsense.orchestrator.graph import build_graph, run_case
+    from retailsense.orchestrator.llm import LLM
+    from tests.test_deliberation import case
+
+    c = case()
+    c["agents"][2] = c["agents"][2].model_copy(update={"forecast": [99.0]})  # outside its band
+    s = run_case(build_graph(cfg, LLM(cfg, transport=None)), c, tau=99.0)
+    valid = c["agents"][:2]
+    expected = consensus([a.forecast[0] for a in valid], [a.confidence for a in valid])[0]
+    assert s["excluded"] == ["weather"]
+    assert s["final"] == pytest.approx(expected)  # a zero-filled weather agent would pull this down

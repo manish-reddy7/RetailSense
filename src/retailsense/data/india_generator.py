@@ -1,8 +1,9 @@
 """India kirana-chain dataset generator (simulation study, fixed seed).
 
-Writes the shared raw file layout (sales_train_evaluation.csv, calendar.csv, sell_prices.csv) so the same
-pipeline runs unchanged, plus Trends-format interest CSVs, ground_truth.parquet (every demand multiplier
-per row: which driver moved demand on which day) and a README describing how the data was generated.
+Writes the shared raw file layout (sales_train_evaluation.csv, calendar.csv, sell_prices.csv) so
+the same pipeline runs unchanged, plus Trends-format interest CSVs, ground_truth.parquet (every
+demand multiplier per row: which driver moved demand on which day) and a README describing how the
+data was generated.
 Weather is REAL (Open-Meteo archive for each store's city); festivals are the real Indian calendar.
 
 Run: python -m retailsense.data.india_generator
@@ -168,7 +169,8 @@ def generate(g: dict) -> None:
     (out / "README.md").write_text(README.format(start=dates[0].date(), end=dates[-1].date(),
                                                  n_items=len(sales) // len(g["stores"]),
                                                  stores=", ".join(g["stores"])), encoding="utf-8")
-    print(f"wrote {out}: {len(sales)} item-store series x {n} days ({dates[0].date()}..{dates[-1].date()})")
+    span = f"{dates[0].date()}..{dates[-1].date()}"
+    print(f"wrote {out}: {len(sales)} item-store series x {n} days ({span})")
 
 
 README = """# India kirana-chain dataset (generated)

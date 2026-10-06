@@ -412,6 +412,9 @@ tokens per deliberated case).
 - Agent forecasts correlate above the 0.95 gate (India ≈ 0.987, Rohlik 0.994–0.997): reported as a
   limitation, not fixed.
 - Single model seed; no multi-seed evidence.
-- Missing mandatory tests: `test_actuals_isolated`, `test_weather_is_forecast`,
-  `test_invalid_agent_output`.
+- Mandatory tests added 2026-10-06: `test_leakage.py::test_actuals_isolated` and
+  `test_schema.py::test_invalid_agent_output` pass. `test_leakage.py::test_weather_is_forecast` is
+  a strict xfail: weather comes from the Open-Meteo observation archive used as a perfect forecast
+  (the frozen design, disclosed in the paper and tested with a noise ablation). It cannot pass
+  without switching to the historical-forecast API and rerunning both studies.
 - Stale `phase3b_pilot` rows in `data/retailsense.db`.
