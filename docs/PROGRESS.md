@@ -418,3 +418,11 @@ tokens per deliberated case).
   (the frozen design, disclosed in the paper and tested with a noise ablation). It cannot pass
   without switching to the historical-forecast API and rerunning both studies.
 - Stale `phase3b_pilot` rows in `data/retailsense.db`.
+
+### Rohlik Google Trends data (downloaded 2026-10-06, follow-up only)
+- Weekly Google Trends for Czechia, "potraviny" and "rohlik", 2019-07-28 to 2024-06-02 (254 weeks
+  each), saved once to `data/raw/rohlik/trends_followup/` with a README. Parsed by
+  `data/trends.py`; scale-invariant features available from 2020-07-19.
+- Not used by the frozen Rohlik study: the folder is not the config's `trends_dir`, so re-running
+  the frozen config still gives the published 3-agent results. A 4-agent Rohlik study would be a
+  separate, declared follow-up.
