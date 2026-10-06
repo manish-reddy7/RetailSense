@@ -58,8 +58,12 @@ On the cost-accuracy curve, selective is worse than the random mean at every rat
 0.30, including the 20% operating point. It is better mainly at rates of 0.65-0.85 (for example
 0.1598 vs 0.1607, sd 0.0006, at 0.75), with mixed results in between. Real data
 therefore sharpen the picture: disagreement marks riskier forecasts somewhat better, but the
-critic does not repair those forecasts selectively. Rohlik test results:
-[ROHLIK TEST: pending final run].
+critic does not repair those forecasts selectively. The Rohlik test split confirms this. D was
+slightly more informative than on India (rho = 0.119, AUROC = 0.579) and clearly more so in the
+three backtest windows (rho 0.28-0.44, AUROC 0.69-0.78). Even so, the triggered cases improved and
+worsened about equally (27.6% vs 26.6%, Wilcoxon p = 1.00), and selective triggering matched a
+random trigger (DM p = 0.57). On test, always-on deliberation was no longer better than selective
+(WAPE 0.1741 vs 0.1745, DM p = 0.59).
 
 ## 6.4 Why accuracy and cost rankings differ
 
@@ -95,8 +99,9 @@ that look risky, would be required.
 
 - **Simulated India sales.** The India data come from a documented generator with real Open-Meteo
   weather and a real Indian festival calendar, but the sales are simulated with known drivers.
-  India results describe method behaviour, not a real store. Rohlik provides real sales, but its
-  test results are pending: [ROHLIK TEST: pending final run].
+  India results describe method behaviour, not a real store. Rohlik provides real sales, and its
+  test results agree with India on every hypothesis except H2, where the small India effect did
+  not replicate.
 - **Single seed.** LightGBM was trained with one seed and no multi-seed evidence exists.
   Differences below about 0.001 WAPE, which include most gaps between systems 5-9, should not be
   over-read.

@@ -1,0 +1,15 @@
+,0
+points,3360
+H1_spearman,0.1194751001721648
+H1_spearman_ci,"[0.0634, 0.1761]"
+H1_auroc_worst,0.5789991452310091
+H1_auroc_ci,"[0.5383, 0.6193]"
+trigger_rate,0.17172619047619048
+H2_triggered_deliberated,576
+H2_fallback_rate,0.0017331022530329143
+H2_improved_share,0.2760416666666667
+H2_worsened_share,0.265625
+H2_mean_abs_err_before,98.76524129861288
+H2_mean_abs_err_after,98.55253339019609
+H2_wilcoxon_p,0.9997741045376143
+hold_rate,0.5328947368421053

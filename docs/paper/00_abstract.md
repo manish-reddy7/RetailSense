@@ -24,7 +24,11 @@ all-features LightGBM is more accurate (WAPE 0.3688 against 0.3775), and ETS has
 inventory cost. On Rohlik validation, D is also weakly associated with error (rho = 0.099,
 AUROC = 0.570) but adds nothing beyond the Historical band width and item volume. There, only
 always-on deliberation helped (WAPE 0.1619 to 0.1602); selective (0.1618) was no better than random
-(0.1615). Rohlik test: [ROHLIK TEST: pending final run]. Limitations: agent forecasts are highly
+(0.1615). On the Rohlik test split, D is again weakly but significantly associated with error
+(rho = 0.119, AUROC = 0.579), deliberation does not improve triggered cases (27.6% improved,
+26.6% worsened, p = 1.00), and selective triggering is no better than random (DM p = 0.57),
+although it uses 83% fewer LLM calls than always-on. ETS is the most accurate Rohlik system
+(WAPE 0.150 against 0.175) and the all-features LightGBM has the lowest inventory cost. Limitations: agent forecasts are highly
 correlated (failing our 0.95 gate), so D largely reflects adjustment size; results use one model
 seed, one 8B local LLM, and observed weather as a perfect forecast. Disagreement is a weak risk
 signal, and an 8B LLM critic triggered by it did not beat chance.

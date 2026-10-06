@@ -1,6 +1,6 @@
 # 2 Related Work
 
-RetailSense draws on seven lines of work. For each we state what it established and how this
+RetailSense draws on eight lines of work; the last (Section 2.8) contains the base paper. For each we state what it established and how this
 paper relates to it or differs from it.
 
 ## 2.1 Forecast combination
@@ -96,8 +96,40 @@ value of the signal from the value of deliberating more cases. Selective trigger
 not reliably better than random. On the India test split its WAPE was 0.0003 lower (bootstrap 95%
 CI [-0.0006, -0.00001]), but the Diebold-Mariano and item-level Wilcoxon tests were not significant
 (p = 0.08 and 0.07), and random had the lower WAPE in all three backtests. On Rohlik validation,
-selective was slightly worse than random (WAPE 0.1618 vs 0.1615, sd 0.0006). The Rohlik test
-result is pending the final run.
+selective was slightly worse than random (WAPE 0.1618 vs 0.1615, sd 0.0006). On the Rohlik test
+split, the difference was again negligible (WAPE -0.0002, CI [-0.0010, 0.0006], DM p = 0.57).
+
+## 2.8 Multi-agent systems for integrated forecasting and inventory (base paper)
+
+MARIOD [yang2025mariod] is the base paper for this work. It treats forecasting and inventory as
+one problem: a transformer with cross-modal attention forecasts demand from sales, promotions and
+sensor streams, and hierarchical agents at store, distribution-centre and corporate level learn
+order and reallocation policies with a hierarchical PPO variant, trained jointly with the
+forecaster. On Dunnhumby, Favorita and UCI Online Retail it reports a MAPE of 15.6% against 17.2%
+for the Temporal Fusion Transformer, and a stockout rate of 3.5% against 5.2% for a hierarchical
+MARL baseline.
+
+RetailSense keeps the base paper's goal, specialised agents whose forecasts drive restocking
+decisions, and differs in four ways.
+
+1. **Agent split.** MARIOD's agents are supply-chain levels that all act on a shared learned
+   representation. RetailSense's agents are evidence sources (history, calendar, weather,
+   interest), and each sees only its own signal. This makes their disagreement interpretable as
+   conflicting evidence, which is the quantity the paper tests.
+2. **Coordination.** MARIOD coordinates through learned graph-attention messages. RetailSense
+   coordinates through an explicit disagreement score D and, only when D >= tau, one bounded LLM
+   critique-and-revision round. Every revision can be inspected and is clipped by code.
+3. **Decision rule.** MARIOD learns the order policy end to end. RetailSense computes orders with
+   a standard (s, S) policy [silver2017], so differences in inventory outcome come only from the
+   forecasts, and every baseline goes through the same simulator.
+4. **Evaluation protocol.** MARIOD uses a 70/15/15 split, fills missing sales with zero and
+   reports single point estimates. RetailSense leaves missing sales missing, freezes tau on
+   validation before one locked test run, reports bootstrap intervals and significance tests,
+   and reports the cases where it does not beat its baselines.
+
+The two papers therefore answer different questions. MARIOD asks how far a jointly trained deep
+system can push accuracy and service level. RetailSense asks whether disagreement between simple
+specialised agents tells us *when* extra reasoning is worth its cost.
 
 ## References
 
@@ -156,6 +188,10 @@ result is pending the final run.
 - [whitaker1998] Whitaker, J. S., & Loughe, A. F. (1998). The relationship between ensemble spread
   and ensemble mean skill. Monthly Weather Review, 126(12), 3292-3302.
   https://api.crossref.org/works/10.1175/1520-0493(1998)126%3C3292:TRBESA%3E2.0.CO;2
+- [yang2025mariod] Yang, Y., Wang, M., Wang, J., Li, P., & Zhou, M. (2025). Multi-agent deep
+  reinforcement learning for integrated demand forecasting and inventory optimization in
+  sensor-enabled retail supply chains. Sensors, 25(8), 2428. doi:10.3390/s25082428.
+  https://doi.org/10.3390/s25082428
 - [zarnowitz1987] Zarnowitz, V., & Lambros, L. A. (1987). Consensus and uncertainty in economic
   prediction. Journal of Political Economy, 95(3), 591-621. doi:10.1086/261473.
   https://ideas.repec.org/a/ucp/jpolec/v95y1987i3p591-621.html

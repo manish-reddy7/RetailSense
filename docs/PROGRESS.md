@@ -388,3 +388,30 @@ tokens per deliberated case).
 - **Frozen 2026-10-03** (author: "okay" to "freeze rohlik"): τ = 0.065352 from
   `deliberation_eval --freeze`; the replay made 0 LLM calls and reproduced every number.
   Prompt v1 (same text as India) marked FROZEN. Dry run + final test run started.
+
+### Rohlik final test run: DONE (2026-10-03 12:58 → 2026-10-06 05:46)
+- Dry run (hold-stub LLM) passed before the final run; MLflow `rohlik_phase5` run
+  `e571b9d28541434984de0c346044a3c5`, config hash `4d5d100636f4`, outputs in `reports/rohlik/final/`.
+- Incidents: laptop restarted from the Start menu (2026-10-04 01:25, at test case ~2,550) and a
+  manual stop (2026-10-04 14:50, in backtest 2). Both times the run was restarted with the same
+  config hash; cached answers replayed with 0 new LLM calls, so the outputs are identical to an
+  uninterrupted run. Logs: `logs/rohlik_final_crash1.log`, `rohlik_final_stop2.log`,
+  `rohlik_final.log`. 0 errors.
+- Test results (full tables in `reports/RESULTS.md`):
+  - Accuracy: ETS best (h1 WAPE 0.1504); LightGBM 0.1665; RetailSense 0.1745 (worse than ETS,
+    DM p = 0.0007).
+  - H1 weak but significant: ρ 0.119 [0.063, 0.176], AUROC 0.579; backtests ρ 0.28–0.44.
+  - H2 not supported: 576 triggered, 27.6 % improved / 26.6 % worsened, p = 1.00; hold rate 53.3 %.
+  - H3 supported on LLM cost: −83 % calls vs always-on, no significant WAPE difference.
+  - H4 not supported: selective − random −0.0002, DM p = 0.57.
+  - H5 not supported: LightGBM cheapest ($133,467); RetailSense $287,344.
+- Gates: trigger rate 17.2 % (inside 10–30 %); hold rate 53.3 %; fallback 0.17 %.
+- Paper placeholders filled (docs/paper 00, 01, 02, 05 §5.9, 06, 07).
+
+### Open issues (both datasets)
+- Agent forecasts correlate above the 0.95 gate (India ≈ 0.987, Rohlik 0.994–0.997): reported as a
+  limitation, not fixed.
+- Single model seed; no multi-seed evidence.
+- Missing mandatory tests: `test_actuals_isolated`, `test_weather_is_forecast`,
+  `test_invalid_agent_output`.
+- Stale `phase3b_pilot` rows in `data/retailsense.db`.

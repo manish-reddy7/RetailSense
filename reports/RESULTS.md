@@ -150,3 +150,64 @@ specific evidence is wrong.
 - Latency includes queueing behind 4 parallel workers on one laptop GPU.
 - The context agents cannot route signals to the items they affect (no item identity), which
   limits how informative their disagreement can be.
+
+---
+
+# Rohlik (real data) — Final Results
+
+Single frozen run on the Rohlik **test split** (d_1347–d_1402, 8 Apr – 2 Jun 2024), warehouse
+Prague_1, 60 items, 3,360 forecast points at h = 1, plus three rolling-origin backtests. Data: real
+daily sales from the Kaggle Rohlik Sales Forecasting Challenge v2, converted by
+`retailsense.data.rohlik`. Three agents (Historical, Calendar, Weather); no Trend agent because no
+search-interest data exist.
+
+| | |
+|---|---|
+| Threshold τ | 0.065352 (80th percentile of validation D), frozen 2026-10-03 before any test read |
+| Prompt | v1 (same text as India), frozen 2026-10-03 |
+| LLM | `llama3.1:latest` (8B) via local Ollama, temperature 0, 4 parallel workers |
+| Config hash | `4d5d100636f4` (`reports/rohlik/final/RUN_LOCK.json`) |
+| MLflow | experiment `rohlik_phase5`, run `e571b9d28541434984de0c346044a3c5` |
+| Run | 2026-10-03 12:58 → 2026-10-06 05:46; interrupted by a laptop restart (10-04 01:25) and a manual stop (10-04 14:50), each resumed with the same config hash, replaying cached LLM answers |
+| Sources | `reports/rohlik/final/table_*.csv`, `case_study.json` |
+
+## Headline
+
+- **ETS is the most accurate system** (h1 WAPE 0.1504). RetailSense is significantly less
+  accurate (+0.0242 [0.0073, 0.0374], DM p = 0.0007).
+- **LightGBM with all features has the lowest inventory cost** ($133,467 vs RetailSense $287,344).
+- **Deliberation does not help where it triggers** (H2, Wilcoxon p = 1.00), and **D is no better
+  than a random trigger** (H4, DM p = 0.57).
+- RetailSense matches always-on deliberation at **83 % fewer LLM calls** (H3).
+
+## Forecast accuracy and cost (test)
+
+| # | System | h1 WAPE [95 % CI] | h1 MAE | h1-7 WAPE | h1 coverage | Total cost | Fill rate |
+|---|---|---|---|---|---|---|---|
+| 1 | Seasonal naive | 0.2582 [0.1857, 0.3383] | 83.21 | 0.2522 | 0.767 | $509,438 | 0.9887 |
+| 2 | **ETS** | **0.1504** [0.1308, 0.1736] | **48.46** | 0.1892 | 0.785 | $262,890 | 0.9956 |
+| 3 | LightGBM, all features | 0.1665 [0.1376, 0.1959] | 53.67 | **0.1858** | 0.775 | **$133,467** | **0.9991** |
+| 4 | Historical agent | 0.1760 [0.1463, 0.2043] | 56.72 | 0.1975 | 0.798 | $314,936 | 0.9937 |
+| 5 | Multi-agent mean | 0.1748 [0.1503, 0.1974] | 56.33 | 0.1995 | 0.802 | $288,150 | 0.9944 |
+| 6 | Multi-agent, confidence | 0.1746 [0.1502, 0.1974] | 56.28 | 0.1993 | 0.802 | $287,802 | 0.9944 |
+| 7 | Random trigger | 0.1747 [0.1509, 0.1971] | 56.31 | 0.1993 | 0.801 | $289,319 | 0.9943 |
+| 8 | Always-on | 0.1741 [0.1505, 0.1961] | 56.11 | 0.1994 | 0.801 | $278,104 | 0.9947 |
+| 9 | RetailSense | 0.1745 [0.1504, 0.1970] | 56.24 | 0.1993 | 0.802 | $287,344 | 0.9944 |
+
+## Hypotheses (test)
+
+| | Result | Verdict |
+|---|---|---|
+| H1 | Spearman ρ 0.119 [0.063, 0.176]; AUROC (worst 20 %) 0.579 [0.538, 0.619]; backtests ρ 0.28–0.44, AUROC 0.69–0.78 | Weak, significant |
+| H2 | 576 triggered (17.2 %): 27.6 % improved, 26.6 % worsened; MAE 98.77 → 98.55; Wilcoxon p = 1.00; hold rate 53.3 % | Not supported |
+| H3 | 696 vs 4,051 LLM calls per 1,000 forecasts (−83 %); WAPE vs always-on +0.0004, DM p = 0.59 | Supported (LLM cost) |
+| H4 | Selective − random WAPE −0.0002 [−0.0010, 0.0006], DM p = 0.57 | Not supported |
+| H5 | Lowest cost LightGBM $133,467, then ETS $262,890; RetailSense $287,344 | Not supported |
+
+## Backtests (`table_backtest.csv`)
+
+| Window | Best WAPE | RetailSense WAPE | Random trigger WAPE | ρ | AUROC |
+|---|---|---|---|---|---|
+| d_1093–d_1148 | ETS 0.1629 | 0.1762 | 0.1777 | 0.438 | 0.779 |
+| d_1149–d_1204 | LightGBM 0.1714 | 0.1912 | 0.1912 | 0.276 | 0.688 |
+| d_1205–d_1260 | LightGBM 0.2072 | 0.2162 | 0.2166 | 0.302 | 0.703 |

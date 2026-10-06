@@ -5,15 +5,16 @@
 RetailSense was evaluated on a simulated Indian kirana store and on real sales from the Rohlik
 online grocer. The India sales come from a documented generator that uses real weather and a real
 festival calendar. They are not a real store's sales. India results below are from the single
-frozen test run. Rohlik results are from validation, because the Rohlik test run is still in
-progress.
+frozen test run. Rohlik results are given for validation and for the single frozen Rohlik test
+run.
 
 - **H1 (D predicts error): weakly supported.** India test: Spearman rho = 0.072, AUROC = 0.539.
   Rohlik validation: rho = 0.099, AUROC = 0.570. On India validation and Rohlik validation, the
   Historical agent's band width and item volume predicted error better than D (Rohlik AUROC 0.706
   and 0.685 vs 0.570), and D added almost nothing beyond them (Rohlik band + volume 0.7124 vs
   band + volume + D 0.7124).
-  Rohlik test: [ROHLIK TEST: pending final run].
+  Rohlik test: rho = 0.119 (95% CI [0.063, 0.176]), AUROC = 0.579 ([0.538, 0.619]), weak but
+  significant; in the three Rohlik backtests D was stronger (rho 0.28-0.44, AUROC 0.69-0.78).
 - **H2 (deliberation helps triggered cases): supported on India test only, with a small effect.**
   30.3% of cases improved and 24.6% worsened (Wilcoxon p = 0.007); mean absolute error moved
   12.661 → 12.633 on 892 triggered points. This is a single-seed result that did not replicate on
@@ -33,7 +34,23 @@ progress.
 
 On the India test, a single LightGBM with all features (WAPE 0.3688) was more accurate than every
 multi-agent system (best 0.3773). On Rohlik validation, LightGBM had the best single-model WAPE
-(0.162); the deliberation arms were scored on a 1,500-case subset and cannot be compared directly. Rohlik test results for H2-H5: [ROHLIK TEST: pending final run].
+(0.162); the deliberation arms were scored on a 1,500-case subset and cannot be compared directly.
+
+On the Rohlik test split (MLflow run `e571b9d28541434984de0c346044a3c5`, config hash
+`4d5d100636f4`, tau = 0.065352, trigger rate 17.2%):
+
+- **H2: not supported.** Of 576 triggered cases, 27.6% improved and 26.6% worsened (Wilcoxon
+  p = 1.00; mean absolute error 98.77 to 98.55). Agents held their forecast in 53.3% of revisions.
+- **H3: supported for LLM cost.** RetailSense used 696 rather than 4,051 LLM calls per 1,000
+  forecasts (-83%), with no significant WAPE difference from always-on (0.1745 vs 0.1741, DM
+  p = 0.59) and no significant cost difference.
+- **H4: not supported.** Selective minus random WAPE was -0.0002 (CI [-0.0010, 0.0006], DM
+  p = 0.57).
+- **H5: not supported.** The all-features LightGBM had the lowest inventory cost ($133,467), then
+  ETS ($262,890); RetailSense cost $287,344.
+
+ETS was the most accurate Rohlik system (h = 1 WAPE 0.150 vs 0.167 for LightGBM and 0.175 for
+RetailSense; RetailSense is significantly worse than ETS, DM p < 0.001).
 
 ## 7.2 Main lesson
 

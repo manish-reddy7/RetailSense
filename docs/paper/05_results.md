@@ -86,3 +86,34 @@ consensus was 3.35 units against an actual 2.0. The critic described the conflic
 terms (the agents use different types of evidence), the revisions left the forecast at 3.35, and
 the policy acted on that number. With the 8B local model, the critic rarely names which specific
 evidence is wrong, which is consistent with the small effects in Sections 5.3-5.5.
+
+## 5.9 Real-data replication: Rohlik test split
+
+The same protocol was run once on the Rohlik test split (d_1347-d_1402, 8 Apr - 2 Jun 2024;
+`reports/rohlik/final/`, MLflow run `e571b9d28541434984de0c346044a3c5`, config hash
+`4d5d100636f4`). tau = 0.065352 and prompt v1 were frozen on Rohlik validation before the run.
+Rohlik uses three agents (no Trend agent). The run was interrupted twice and resumed with the same
+config hash; completed cases were replayed from the LLM cache with no new calls.
+
+| # | System | h1 WAPE [95% CI] | h1-7 WAPE | Total cost |
+|---|---|---|---|---|
+| 1 | Seasonal naive | 0.2582 [0.1857, 0.3383] | 0.2522 | $509,438 |
+| 2 | **ETS** | **0.1504** [0.1308, 0.1736] | 0.1892 | $262,890 |
+| 3 | LightGBM, all features | 0.1665 [0.1376, 0.1959] | **0.1858** | **$133,467** |
+| 4 | Historical agent | 0.1760 [0.1463, 0.2043] | 0.1975 | $314,936 |
+| 6 | Multi-agent, confidence-weighted | 0.1746 [0.1502, 0.1974] | 0.1993 | $287,802 |
+| 7 | Random trigger | 0.1747 [0.1509, 0.1971] | 0.1993 | $289,319 |
+| 8 | Always-on deliberation | 0.1741 [0.1505, 0.1961] | 0.1994 | $278,104 |
+| 9 | RetailSense | 0.1745 [0.1504, 0.1970] | 0.1993 | $287,344 |
+
+RetailSense is significantly less accurate than ETS (WAPE difference +0.024 [0.007, 0.037],
+DM p < 0.001) and not significantly different from LightGBM (+0.008, DM p = 0.17).
+
+- **H1.** Spearman rho = 0.119 [0.063, 0.176]; AUROC for the worst 20% = 0.579 [0.538, 0.619].
+  Weak but significant, and stronger in the three backtests (rho 0.28-0.44, AUROC 0.69-0.78).
+- **H2.** 576 triggered cases (17.2%): 27.6% improved, 26.6% worsened, Wilcoxon p = 1.00. Hold
+  rate 53.3%; fallback rate 0.17%.
+- **H3.** 696 vs 4,051 LLM calls per 1,000 forecasts (-83%); WAPE vs always-on +0.0004, DM
+  p = 0.59.
+- **H4.** Selective minus random WAPE -0.0002 [-0.0010, 0.0006], DM p = 0.57.
+- **H5.** Lowest cost: LightGBM. RetailSense costs more than LightGBM and ETS.

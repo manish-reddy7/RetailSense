@@ -11,6 +11,17 @@ source to trust [du2023].
 Each LLM call, however, costs time and money. Calling the model on every item and every day is
 expensive, and the value of doing so is not obvious [tan2024].
 
+The closest prior system, and the base work for this paper, is MARIOD [yang2025mariod]. It
+couples a transformer demand forecaster with hierarchical multi-agent reinforcement learning at
+store, distribution-centre and corporate level, and reports lower forecast error and fewer
+stockouts than deep-learning and RL baselines. RetailSense addresses the same problem, joint
+demand forecasting and restocking with specialised agents, but changes three things. Its agents
+are split by *evidence source* rather than by supply-chain level. They coordinate through an
+explicit disagreement score and one bounded LLM revision rather than a learned communication
+protocol. And orders come from a transparent (s, S) policy rather than a learned policy. The
+evaluation protocol also differs: a single locked test run with a frozen threshold, missing
+sales left missing rather than zero-filled, and results reported where RetailSense loses.
+
 This paper asks whether an LLM can be used *selectively*: only on the forecasts where it is most
 likely to help. The idea comes from forecast combination and ensemble forecasting. Combining
 forecasts usually beats a single forecast [bates1969; timmermann2006; wang2023], and the spread
@@ -65,7 +76,8 @@ disagreement signal adds nothing.
    the 80th percentile of validation D, and tau and the prompt are frozen before the test split is
    read. Each dataset's test split is read by a single final run (the India run was resumed once
    after a GPU crash, replaying completed cases from the cache with no new LLM calls; the Rohlik
-   final run is [ROHLIK TEST: pending final run]).
+   final run was interrupted twice, by a laptop restart and a manual stop, and each time resumed
+   with the same config hash, replaying completed cases from the cache with no new LLM calls).
 2. **A simulator with logged ground-truth drivers.** The primary dataset is a simulated Indian
    kirana (neighbourhood grocery) chain. Its sales are generated, not observed. They are built from
    real Open-Meteo weather and a real Indian festival calendar, and every multiplier behind each
@@ -95,7 +107,14 @@ On Rohlik validation data, D is somewhat more informative (rho = 0.099, AUROC = 
 adds almost nothing beyond the Historical agent's band width and item volume. On 1,500 stratified
 validation cases, always-on deliberation lowers WAPE from 0.1619 to 0.1602 (single run, not
 significance-tested), while selective deliberation (0.1618) is slightly worse than a random trigger
-at the same rate (0.1615, sd 0.0006). Rohlik test results are [ROHLIK TEST: pending final run].
+at the same rate (0.1615, sd 0.0006). The Rohlik test split confirms this picture. D is weakly
+but significantly associated with error (rho = 0.119, 95% CI [0.063, 0.176]; AUROC = 0.579),
+deliberation leaves triggered cases unchanged (27.6% improved, 26.6% worsened, Wilcoxon
+p = 1.00), and selective triggering is no better than random at the same 17% rate (WAPE
+difference -0.0002, CI [-0.0010, 0.0006], DM p = 0.57). Selective deliberation uses 83% fewer LLM
+calls than always-on (696 vs 4,051 per 1,000 forecasts) at no significant accuracy cost. ETS is
+the most accurate Rohlik system (h = 1 WAPE 0.150 vs 0.175 for RetailSense, DM p < 0.001), and
+the all-features LightGBM has the lowest inventory cost ($133,467 vs $287,344).
 Taken together, disagreement between these agents is a weak risk signal, and a small 8B LLM critic
 does not use it to improve forecasts selectively. These results come with caveats: the agents'
 forecasts are highly correlated (0.994-0.997 on Rohlik, and above the 0.95 design gate on India
@@ -132,4 +151,5 @@ Section 7 concludes.
 - [timmermann2006] Timmermann, A. (2006). Forecast combinations. In G. Elliott, C. W. J. Granger & A. Timmermann (Eds.), Handbook of Economic Forecasting, Vol. 1, pp. 135-196. Elsevier. https://ideas.repec.org/h/eee/ecofch/1-04.html
 - [wang2023] Wang, X., Hyndman, R. J., Li, F., & Kang, Y. (2023). Forecast combinations: An over 50-year review. International Journal of Forecasting, 39(4), 1518-1547. doi:10.1016/j.ijforecast.2022.11.005. https://api.crossref.org/works/10.1016/j.ijforecast.2022.11.005
 - [whitaker1998] Whitaker, J. S., & Loughe, A. F. (1998). The relationship between ensemble spread and ensemble mean skill. Monthly Weather Review, 126(12), 3292-3302. https://api.crossref.org/works/10.1175/1520-0493(1998)126%3C3292:TRBESA%3E2.0.CO;2
+- [yang2025mariod] Yang, Y., Wang, M., Wang, J., Li, P., & Zhou, M. (2025). Multi-agent deep reinforcement learning for integrated demand forecasting and inventory optimization in sensor-enabled retail supply chains. Sensors, 25(8), 2428. doi:10.3390/s25082428. https://doi.org/10.3390/s25082428
 - [zarnowitz1987] Zarnowitz, V., & Lambros, L. A. (1987). Consensus and uncertainty in economic prediction. Journal of Political Economy, 95(3), 591-621. doi:10.1086/261473. https://ideas.repec.org/a/ucp/jpolec/v95y1987i3p591-621.html
