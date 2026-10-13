@@ -1,0 +1,15 @@
+,0
+points,5160
+H1_spearman,0.06438464360278172
+H1_spearman_ci,"[0.0256, 0.1024]"
+H1_auroc_worst,0.5347191706477976
+H1_auroc_ci,"[0.5062, 0.573]"
+trigger_rate,0.2
+H2_triggered_deliberated,1032
+H2_fallback_rate,0.0
+H2_improved_share,0.0
+H2_worsened_share,0.0
+H2_mean_abs_err_before,9.619666917678831
+H2_mean_abs_err_after,9.619666917678831
+H2_wilcoxon_p,
+hold_rate,1.0

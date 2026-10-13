@@ -1,0 +1,104 @@
+{
+  "item_id": "sevai_2",
+  "d": 1907,
+  "D": 0.6019447401691367,
+  "actual": 2.0,
+  "consensus": 3.3544772987603415,
+  "final": 3.354477298760342,
+  "critic": {
+    "primary_conflict": "The main reason the agents disagree is that they use different types of evidence, such as historical sales, calendar events, weather, and trend analysis.",
+    "conflicting_agents": [
+      "historical",
+      "calendar",
+      "weather",
+      "trend"
+    ],
+    "evidence_assessment": [
+      {
+        "agent": "historical",
+        "strength": "strong",
+        "reason": "uses recent sales history and multiple time windows"
+      },
+      {
+        "agent": "calendar",
+        "strength": "moderate",
+        "reason": "uses weekday, month, and holidays, but lacks recent sales history"
+      },
+      {
+        "agent": "weather",
+        "strength": "weak",
+        "reason": "uses temperature and precipitation, but lacks recent sales history and is sensitive to anomalies"
+      },
+      {
+        "agent": "trend",
+        "strength": "moderate",
+        "reason": "uses public search interest, but lacks recent sales history and is sensitive to related product trends"
+      }
+    ],
+    "missing_or_stale_evidence": [],
+    "questions_for_agents": [
+      {
+        "agent": "historical",
+        "question": "How sensitive is your forecast to changes in the roll_mean_56 time window?"
+      }
+    ]
+  },
+  "revisions": [
+    {
+      "agent_id": "historical",
+      "m_raw": 0.8,
+      "m": 0.8,
+      "y_raw": 4.0000477673737755,
+      "y": 4.0000477673737755,
+      "initial": 4.0000477673737755,
+      "c": 0.7395629745651567,
+      "clipped": false,
+      "held": false,
+      "w": 0.26103014290305265,
+      "rationale": "Reduced confidence due to conflicting evidence from other agents, particularly calendar and trend agents, which use different types of evidence."
+    },
+    {
+      "agent_id": "calendar",
+      "m_raw": 0.8,
+      "m": 0.8,
+      "y_raw": 0.0,
+      "y": 0.0,
+      "initial": 0.0,
+      "c": 0.7238083389510184,
+      "clipped": false,
+      "held": false,
+      "w": 0.25546951463044065,
+      "rationale": "I'm reducing my confidence and revising my forecast downward due to the Critic's report highlighting the limitations of my evidence, particularly the lack of recent sales history."
+    },
+    {
+      "agent_id": "weather",
+      "m_raw": 0.8,
+      "m": 0.8,
+      "y_raw": 4.295273493551363,
+      "y": 4.295273493551363,
+      "initial": 4.295273493551363,
+      "c": 0.6868161907306088,
+      "clipped": false,
+      "held": false,
+      "w": 0.24241306633820167,
+      "rationale": "Reducing confidence due to the Critic's report highlighting the limitations of my evidence, which is sensitive to anomalies and lacks recent sales history."
+    },
+    {
+      "agent_id": "trend",
+      "m_raw": 0.8,
+      "m": 0.8,
+      "y_raw": 5.264126172363109,
+      "y": 5.264126172363109,
+      "initial": 5.264126172363109,
+      "c": 0.6830598990610887,
+      "clipped": false,
+      "held": false,
+      "w": 0.24108727612830516,
+      "rationale": "I'm reducing my confidence in my forecast due to the Critic's report highlighting the limitations of my evidence, specifically the lack of recent sales history and sensitivity to anomalies."
+    }
+  ],
+  "action": {
+    "action": "RESTOCK",
+    "qty": 42
+  }
+}

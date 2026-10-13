@@ -1,0 +1,122 @@
+# FOLLOW-UP (declared 2026-10-12, after the frozen 3-agent Rohlik study): the same Rohlik data
+# with a Trend agent on Google Trends, Czechia: "potraviny" (groceries) and "rohlik" (the brand,
+# but also the word for a bread roll, so it mixes brand and non-brand searches). VALIDATION ONLY: tau is
+# not frozen and there is no `final` block, so this config can never read the test split, and its
+# processed files, DB and reports are separate (dataset rohlik_trends). The frozen study is
+# configs/experiment_rohlik.yaml and is unchanged.
+# RetailSense experiment config: Rohlik (real online-grocery sales, Kaggle Sales Forecasting
+# Challenge v2), warehouse Prague_1. Same design as configs/experiment.yaml (India); only the
+# data, dates, city and the ETS window differ. Use with RETAILSENSE_CONFIG=configs/experiment_rohlik.yaml
+dataset: rohlik_trends
+seed: 42
+
+source:
+  dir: data/rohlik-sales-forecasting-challenge-v2
+  warehouse: Prague_1
+  start: "2020-08-01"         # d_1 (a Saturday); the data ends 2024-06-02 = d_1402
+  complete_from: d_1000       # items need a sales record on every day from 27 Apr 2023 to the end
+
+paths:
+  raw: data/raw/rohlik
+  processed: data/processed/rohlik_trends
+  cache: data/cache
+  db: data/retailsense_rohlik_trends.db
+  subset: configs/subset_rohlik.yaml
+
+data:
+  store: Prague_1
+  state: CZ
+  dept: GROCERY
+  top_n: 60             # same size as the India study
+  rank_end: d_1260      # items are ranked on train days only, so test sales cannot pick the subset
+  train_end: d_1260     # 2020-08-01 .. 2024-01-12
+  val_end: d_1346       # 86 days, 2024-01-13 .. 2024-04-07 (same length as India)
+  test_end: d_1402      # 56 days, 2024-04-08 .. 2024-06-02 (same length as India)
+
+weather:
+  city: {CZ: [50.08, 14.44]}  # Prague
+  vars: [temperature_2m_max, temperature_2m_min, precipitation_sum]
+  timezone: Europe/Prague
+  fetch_start: "2010-01-01"   # ten earlier years for the past-years-only climatology
+  fetch_end: "2024-06-02"
+  clim_years: 10
+  clim_half_window: 15
+  hot_anom_c: 5.0
+  rainy_mm: 1.0
+  change_days: 3
+
+interest:                     # follow-up: Google Trends, Czechia (trends_followup/README.md)
+  trends_dir: data/raw/rohlik/trends_followup
+  trends_geo: CZ
+  keywords:
+    potraviny: potraviny
+    rohlik: rohlik
+  trends_lt1: 0.5
+
+agents:
+  horizons: [1, 2, 3, 4, 5, 6, 7]
+  confidence_window: 28
+  confidence_min_days: 14
+  oof_folds: 5
+
+disagreement: {method: cv, floor: 1.0, tau_quantile: 0.80}
+
+analysis:
+  worst_share: 0.20
+  bootstrap: 1000
+  trigger_rates: [0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40]
+
+deliberation:
+  rounds: 1
+  m_bounds: [0.25, 2.0]
+  provider: ollama
+  model: llama3.1:latest
+  api_key_env: OPENROUTER_API_KEY
+  temperature: 0
+  max_output_tokens: 2048
+  context_tokens: 3072
+  prompt_version: v1        # FROZEN 2026-10-03 (same prompt text as the India study)
+  history_days: 14
+  max_invalid_retries: 1
+  api_retries: 6
+  api_backoff_s: 2.0
+  rpm: 300
+  sample_size: 1500
+  random_trigger_draws: 50
+  workers: 4
+  tau: null                   # follow-up: not frozen (validation only)
+
+lgbm:
+  num_threads: 4
+  early_stop_days: 28
+  early_stopping_rounds: 100
+  max_rounds: 3000
+  quantiles: [0.1, 0.9]
+  historical:
+    learning_rate: 0.05
+    num_leaves: 63
+    min_data_in_leaf: 100
+    feature_fraction: 0.8
+    bagging_fraction: 0.8
+    bagging_freq: 1
+    lambda_l2: 1.0
+    tweedie_variance_power: 1.1
+  residual:
+    learning_rate: 0.03
+    num_leaves: 15
+    min_data_in_leaf: 1000
+    feature_fraction: 1.0
+    bagging_fraction: 0.8
+    bagging_freq: 1
+    lambda_l2: 50.0
+  key_factors: 3
+
+ets:
+  season: 7
+  fit_window: 91        # 13 weeks: the window must hold no missing days (items complete from d_1000)
+  refit_every: 7
+  band_alpha: 0.2
+
+mlflow:
+  tracking_uri: sqlite:///mlflow.db
+

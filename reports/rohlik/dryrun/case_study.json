@@ -1,0 +1,76 @@
+{
+  "item_id": "Pastry_170",
+  "d": 1339,
+  "D": 0.7037835011255621,
+  "actual": 6.61,
+  "consensus": 6.833865203749534,
+  "final": 6.833865203749534,
+  "critic": {
+    "primary_conflict": "dry run",
+    "conflicting_agents": [],
+    "evidence_assessment": [
+      {
+        "agent": "historical",
+        "strength": "moderate",
+        "reason": "dry run"
+      },
+      {
+        "agent": "calendar",
+        "strength": "moderate",
+        "reason": "dry run"
+      },
+      {
+        "agent": "weather",
+        "strength": "moderate",
+        "reason": "dry run"
+      }
+    ],
+    "missing_or_stale_evidence": [],
+    "questions_for_agents": []
+  },
+  "revisions": [
+    {
+      "agent_id": "historical",
+      "m_raw": 1.0,
+      "m": 1.0,
+      "y_raw": 10.747294599125823,
+      "y": 10.747294599125823,
+      "initial": 10.747294599125823,
+      "c": 0.7029783479229076,
+      "clipped": false,
+      "held": true,
+      "w": 0.33709608770905936,
+      "rationale": "dry run"
+    },
+    {
+      "agent_id": "calendar",
+      "m_raw": 1.0,
+      "m": 1.0,
+      "y_raw": 0.0,
+      "y": 0.0,
+      "initial": 0.0,
+      "c": 0.6865216212535105,
+      "clipped": false,
+      "held": true,
+      "w": 0.3292046665961014,
+      "rationale": "dry run"
+    },
+    {
+      "agent_id": "weather",
+      "m_raw": 1.0,
+      "m": 1.0,
+      "y_raw": 9.622419835686115,
+      "y": 9.622419835686115,
+      "initial": 9.622419835686115,
+      "c": 0.69589459206107,
+      "clipped": false,
+      "held": true,
+      "w": 0.3336992456948392,
+      "rationale": "dry run"
+    }
+  ],
+  "action": {
+    "action": "HOLD",
+    "qty": 0
+  }
+}

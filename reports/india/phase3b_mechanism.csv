@@ -1,0 +1,16 @@
+,0
+triggered_cases,300.0
+improved_share,0.33666666666666667
+worsened_share,0.29333333333333333
+mean_abs_err_before,9.861932826202121
+mean_abs_err_after,9.86339507249766
+wilcoxon_p,0.3204941466293705
+fallback_rate,0.0
+hold_rate,0.5371666666666667
+hold_rate_calendar,0.6033333333333334
+hold_rate_historical,0.37266666666666665
+hold_rate_trend,0.5873333333333334
+hold_rate_weather,0.5853333333333334
+clip_rate,0.0
+mean_latency_fast_ms,6.506720800418407
+mean_latency_deliberation_ms,30.04943040019134

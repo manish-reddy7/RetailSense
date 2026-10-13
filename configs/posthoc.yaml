@@ -1,0 +1,3 @@
+# eval/posthoc.py only. Kept out of experiment*.yaml so the frozen config hash (RUN_LOCK.json)
+# is unchanged. The frozen study used seed 42; these are the extra seeds.
+seeds: [1, 2, 3, 4]

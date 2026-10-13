@@ -1,0 +1,75 @@
+# Generator for the India kirana-chain dataset (simulation, fixed seed).
+# Demand = base x store x weekday x trend x weather x festival x payday x promo x interest shock,
+# then gamma-Poisson noise and occasional stock-outs. Every multiplier is logged per row to
+# ground_truth.parquet so we know which driver moved demand on which day.
+seed: 7
+out_dir: data/raw/india
+start: "2019-01-05"          # a Saturday, so weeks run Sat-Fri (wday 1 = Saturday)
+n_days: 1941                 # d_1..d_1941; split indices are in experiment.yaml
+dept: KIRANA
+
+stores:                      # store_id: [state, demand scale]
+  MUM_1: [MH, 1.2]
+  DEL_1: [DL, 1.0]
+  CHE_1: [TN, 0.9]
+
+variants: 3                  # brands per archetype -> 20 x 3 = 60 items
+variant_scale: [0.6, 1.6]    # brand size multiplier range
+weekday: {Sat: 1.15, Sun: 1.25, Mon: 0.9, Tue: 0.9, Wed: 0.95, Thu: 0.95, Fri: 1.0}
+growth_per_year: 0.05
+dispersion: 6.0              # gamma-Poisson shape; smaller = noisier
+payday: {days: [1, 2, 3, 4, 5], mult: 1.15, cats: [STAPLES, DAIRY, HOUSEHOLD]}
+
+weather:
+  heat_level: 0.03           # per degree above heat_ref, times the item's heat sensitivity
+  heat_ref: 30.0
+  heat_anom: 0.05            # per degree of anomaly vs climatology, times heat sensitivity
+  rain: 0.35                 # rainy day, times the item's rain sensitivity
+  heavy_rain_mm: 20.0
+  heavy_rain_footfall: 0.85  # all items on heavy-rain days
+
+festivals:                   # holiday-name substring -> key; demand ramps up over pre_days
+  pre_days: 7
+  day_of_mult: 0.8           # shops quieter on the festival day itself
+  names: {Diwali: diwali, Holi: holi, Id-ul-Fitr: eid, Dussehra: dussehra}
+
+promo: {week_prob: 0.05, discount: 0.15, elasticity: 2.0}
+inflation_per_year: 0.06
+price_noise: 0.02
+
+shocks:                      # interest-driven surges: visible early in the keyword's index
+  per_year: 2                # per keyword
+  length: [7, 21]
+  mult: [1.5, 2.5]
+  lead_days: 5               # the interest index rises this many days before demand does
+trends:
+  base: 50
+  noise: 0.08
+  windows:                   # two overlapping windows, each scaled 0-100 to its own max, like Google
+    - ["2018-01-01", "2022-06-30"]
+    - ["2021-01-01", "2024-04-29"]
+
+stockout: {start_prob: 0.002, length: [2, 10]}
+
+# archetype: [category, base units/day, price INR, heat, rain, festival affinities, keyword]
+archetypes:
+  atta:        [STAPLES,   20,  250,  0.0,  0.0, {diwali: 0.2},                         null]
+  rice:        [STAPLES,   18,  300,  0.0,  0.0, {},                                     null]
+  toor_dal:    [STAPLES,   12,  150,  0.0,  0.0, {},                                     null]
+  sugar:       [STAPLES,   15,   45,  0.0,  0.0, {diwali: 0.5, eid: 0.4},                null]
+  oil:         [STAPLES,   14,  180,  0.0,  0.0, {diwali: 0.6},                          null]
+  besan:       [STAPLES,    8,   90,  0.0,  0.6, {diwali: 0.5},                          null]
+  sevai:       [STAPLES,    3,   60,  0.0,  0.0, {eid: 3.0},                             null]
+  ghee:        [DAIRY,      6,  550,  0.0,  0.0, {diwali: 1.5},                          null]
+  milk:        [DAIRY,     60,   30,  0.1,  0.0, {},                                     null]
+  curd:        [DAIRY,     25,   40,  0.4,  0.0, {},                                     null]
+  ice_cream:   [FROZEN,    10,   60,  1.0, -0.5, {holi: 0.5},                            ice cream]
+  cold_drink:  [BEVERAGES, 20,   40,  0.8, -0.4, {holi: 0.8},                            cold drink]
+  tea:         [BEVERAGES, 15,  120, -0.3,  0.4, {},                                     tea]
+  biscuits:    [SNACKS,    40,   20,  0.0,  0.1, {},                                     null]
+  namkeen:     [SNACKS,    25,   50,  0.0,  0.2, {diwali: 0.8, dussehra: 0.4},           null]
+  maggi:       [SNACKS,    30,   14,  0.0,  0.3, {},                                     maggi]
+  sweets:      [SWEETS,     8,  400,  0.0,  0.0, {diwali: 3.0, holi: 1.0, eid: 0.8, dussehra: 1.0}, sweets]
+  dry_fruits:  [SWEETS,     4,  700,  0.0,  0.0, {diwali: 2.5, eid: 1.0},                dry fruits]
+  soap:        [HOUSEHOLD, 15,   35,  0.0,  0.0, {},                                     null]
+  detergent:   [HOUSEHOLD, 10,  120,  0.0,  0.0, {diwali: 0.4},                          null]
