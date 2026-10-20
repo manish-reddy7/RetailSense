@@ -1,0 +1,9 @@
+,0
+n,300.0
+tau,0.0653518183067738
+fallback_rate,0.0
+hold_rate,0.99
+clip_rate,0.0
+nocritic_minus_critic,-0.005080459112466876
+ci_lo,-0.010797561368730734
+ci_hi,0.0020524769204716673

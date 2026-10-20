@@ -1,0 +1,12 @@
+,p,effect,p_holm,family
+"H1 Spearman(D, error)",3.711418880452975e-12,0.5789991452310091,1.1134256641358925e-11,confirmatory
+H2 item-clustered,0.586,0.21270790841679163,1.0,confirmatory
+H4 DM selective vs random,0.5747474491905805,-0.00022423203761236474,1.0,confirmatory
+DM RetailSense vs seasonal_naive,5.334685509970829e-10,-0.0836701150664741,4.267748407976663e-09,systems
+DM RetailSense vs ets,0.0007199001747789,0.0241503305872161,0.0050393012234523,systems
+DM RetailSense vs lgbm_all_features,0.1712609086387632,0.0079616839776499,1.0,systems
+DM RetailSense vs historical,0.5573622670802335,-0.0015004422216715,1.0,systems
+DM RetailSense vs multi_agent_mean,0.2913509168855198,-0.0002715658806121,1.0,systems
+DM RetailSense vs multi_agent_confidence,0.6479609698520719,-0.000113142778223,1.0,systems
+DM RetailSense vs random_trigger,0.5747474491905805,-0.0002242320376123,1.0,systems
+DM RetailSense vs always_on,0.5854474363478162,0.0004137849994109,1.0,systems
