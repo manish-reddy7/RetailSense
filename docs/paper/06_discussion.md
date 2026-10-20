@@ -102,15 +102,52 @@ that look risky, would be required.
   India results describe method behaviour, not a real store. Rohlik provides real sales, and its
   test results agree with India on every hypothesis except H2, where the small India effect did
   not replicate.
-- **Single seed.** LightGBM was trained with one seed and no multi-seed evidence exists.
-  Differences below about 0.001 WAPE, which include most gaps between systems 5-9, should not be
-  over-read.
+- **Single seed in the frozen run.** The test run used one LightGBM seed (42). A post-hoc check
+  refit systems 1-6 on validation under four more seeds (no LLM, so systems 7-9 were not rerun;
+  `reports/*/posthoc/val_seeds.csv`). The seed standard deviation of h = 1 WAPE is 0.0004-0.0006 on
+  India and 0.0007-0.0023 on Rohlik, so gaps between systems 5-9 (below 0.0005) are within seed
+  noise. The single all-features LightGBM beat the confidence-weighted multi-agent consensus under
+  every seed (gap 0.0097 +/- 0.0006 India, 0.0098 +/- 0.0026 Rohlik). H1 is seed-sensitive on
+  India: rho ranged 0.027-0.064 (mean 0.044) and AUROC 0.505-0.535, and seed 42 gave the highest
+  value of both, so the reported India H1 is at the favourable end. On Rohlik rho was 0.085-0.104.
 - **One LLM.** Only an 8B local model was tested. A stronger critic could change H2-H4.
-- **Observed weather as a perfect forecast.** The Open-Meteo archive gives observed weather, which
-  is used as if it were a perfect forecast. Only the noise ablation checks this; it raised the
-  trigger rate from 26.5% to 36.5%, and the triggered sets overlapped with a Jaccard index of 0.64.
-  Because observed weather is better than any real forecast, the Weather agent's results are
-  likely optimistic.
+- **Weather inputs.** The study feeds the Open-Meteo archive value for the target day, i.e. weather
+  as a perfect forecast. A post-hoc comparison with Open-Meteo's archive of *issued* short-lead
+  forecasts (`reports/*/posthoc/val_issued_weather.csv`) bounds the effect. For Mumbai the two
+  archives return identical values on every day of the last training year, validation and test,
+  so the India inputs equal forecasts that were available at h = 1; because the India demand was
+  generated from this same series, the Weather agent still sees its true driver without error,
+  which is a property of the simulation. For Prague the issued forecasts differ (MAE 0.9 C tmax,
+  1.1 C tmin, 0.6 mm precipitation on validation), yet replacing the validation inputs with them,
+  models unchanged, moved h = 1 WAPE by -0.0001 for the Weather agent and -0.0004 for the
+  all-features control. The archive holds the shortest-lead forecast only, so for h > 1 the real
+  penalty is larger; the noise ablation (trigger rate 26.5% to 36.5%, Jaccard 0.64) covers that
+  direction.
+- **Censored demand.** Sales are capped on stock-out days and treated as demand: 1.2% of India
+  test item-days (generator flag) and 5.0% of Rohlik test item-days (availability < 1). Scoring
+  without those days changes h = 1 WAPE by at most 0.016 and leaves the test ranking of systems
+  1-6 unchanged on both datasets; on Rohlik validation ETS and the Historical agent, 0.0007 apart,
+  swap places (`reports/*/posthoc/censoring.csv`).
+- **Fixed inventory parameters.** L = 3, R = 7, z = 1.65 and the costs ($5 per order, 25% a year
+  holding, lost sales at 1x price) are illustrative, and z = 1.65 is not cost-optimal when a lost
+  sale costs far more than a day of holding. In the validation sensitivity runs a 0.99 service
+  level lowers every system's India cost by 26-33%, but ETS remains the cheapest system
+  (`reports/india/phase4_sensitivity.csv`), so the cost ranking is not an artefact of z.
+- **Context agents cannot target items.** A residual agent sees the baseline and its own evidence
+  but no item identity, so it applies about the same adjustment to every item (Trend adds a flat
+  +1.3 while the planted ice-cream effect is +11.7). Confidence weights are uninformative (Spearman
+  with error -0.09 to -0.12; the most confident agent is the most accurate on 33% of points).
+- **Generated interest signal.** The India search-interest index is produced by the generator and
+  is built to lead demand, so the Trend agent is tested on a signal designed to be useful.
+- **Validation window.** The India validation window (December-March) has 0 rainy days and no
+  major festival, so tau and all design choices were made on a period with little weather or
+  festival evidence.
+- **Missing comparisons.** There is no deep-learning or foundation-model baseline, and no ablation
+  that revises without the critic's conflict analysis. A post-hoc validation check of other
+  gradient-boosting learners (XGBoost, scikit-learn HGB) changed h = 1 WAPE by at most 3%, with no
+  learner best on both datasets (`reports/*/posthoc/val_learners.csv`).
+- **Process.** The go/pivot decision required after the early H1 smoke test (rho = 0.064 < 0.15)
+  was recorded retrospectively, after both test runs.
 - **Rohlik item selection.** Items were chosen by having a sales record on every day from d_1000,
   which uses presence (not sales) in the evaluation period. The Trend agent is absent, so Rohlik
   uses three agents.

@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RetailSense Project Documentation</title>
+<style>
+  :root {
+    --ink: #1d2327;
+    --muted: #5b6770;
+    --rule: #cfd8dc;
+    --accent: #0f5c63;
+    --accent-soft: #e6f0f1;
+    --code-bg: #f3f5f6;
+  }
+  @page { size: A4; margin: 18mm 17mm 18mm 17mm; }
+  html { background: #fff; }
+  body {
+    font-family: Cambria, "Times New Roman", serif;
+    font-size: 10.5pt; line-height: 1.5; color: var(--ink); margin: 0;
+  }
+  h1, h2, h3, .cover, th, .label, figcaption, .toc {
+    font-family: "Segoe UI", Calibri, Arial, sans-serif;
+  }
+  h2 {
+    font-size: 16pt; color: var(--accent); margin: 0 0 8pt;
+    padding-bottom: 4pt; border-bottom: 1.5pt solid var(--accent);
+    break-after: avoid;
+  }
+  h3 { font-size: 11.5pt; margin: 14pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 7pt; text-align: justify; hyphens: auto; }
+  section { break-before: page; }
+  ul, ol { margin: 0 0 7pt; padding-left: 18pt; }
+  li { margin-bottom: 2pt; }
+  code, pre { font-family: Consolas, "Courier New", monospace; font-size: 8.8pt; }
+  code { background: var(--code-bg); padding: 0 2pt; border-radius: 2pt; }
+  pre {
+    background: var(--code-bg); border-left: 3pt solid var(--accent);
+    padding: 6pt 9pt; margin: 0 0 9pt; white-space: pre-wrap; break-inside: avoid;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt; font-size: 9pt;
+          break-inside: avoid; }
+  th { text-align: left; font-size: 8.5pt; font-weight: 600; color: #fff;
+       background: var(--accent); padding: 4pt 6pt; }
+  td { padding: 3.5pt 6pt; border-bottom: 0.6pt solid var(--rule); vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafa; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .best { font-weight: 700; }
+  figure { margin: 6pt 0 12pt; break-inside: avoid; text-align: center; }
+  figure img { max-width: 100%; }
+  figure.pair img { width: 49%; }
+  figcaption { font-size: 8.5pt; color: var(--muted); margin-top: 3pt; text-align: left; }
+  .note {
+    background: var(--accent-soft); border-left: 3pt solid var(--accent);
+    padding: 6pt 9pt; margin: 4pt 0 10pt; break-inside: avoid;
+  }
+  .eq { text-align: center; margin: 6pt 0 9pt; font-style: italic; }
+
+  /* cover */
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .top { border-top: 5pt solid var(--accent); padding-top: 22mm; }
+  .cover h1 { font-size: 34pt; margin: 0; color: var(--accent); letter-spacing: -0.5pt; }
+  .cover .sub { font-size: 14pt; margin: 6pt 0 0; color: var(--ink); max-width: 150mm; line-height: 1.35; }
+  .cover .kind { font-size: 11pt; color: var(--muted); margin-top: 18pt; }
+  .cover dl { display: grid; grid-template-columns: 38mm 1fr; gap: 3pt 8pt; font-size: 9.5pt; margin: 0; }
+  .cover dt { color: var(--muted); }
+  .cover dd { margin: 0; }
+
+  .toc ol { list-style: none; padding: 0; font-size: 10.5pt; columns: 1; }
+  .toc li { padding: 3pt 0; border-bottom: 0.6pt dotted var(--rule); }
+  .toc .n { display: inline-block; width: 9mm; color: var(--accent); font-weight: 600; }
+
+  svg text { font-family: "Segoe UI", Calibri, Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ COVER -->
+<div class="cover">
+  <div class="top">
+    <h1>RetailSense</h1>
+    <p class="sub">A disagreement-triggered multi-agent framework for daily demand forecasting and
+    restocking decisions</p>
+    <p class="kind">Project documentation</p>
+  </div>
+  <dl>
+    <dt>Project type</dt><dd>Research capstone (16 weeks)</dd>
+    <dt>Code</dt><dd>Python 3.11 package <code>src/retailsense</code>; Next.js web app in <code>web/</code></dd>
+    <dt>Datasets</dt><dd>Simulated Mumbai kirana store (India); real Rohlik online-grocer sales (Prague)</dd>
+    <dt>Status</dt><dd>Both frozen test runs complete; post-hoc diagnosis complete; both runs reproduced byte-for-byte</dd>
+    <dt>Date</dt><dd>13 October 2026</dd>
+    <dt>Detailed log</dt><dd><code>docs/PROGRESS.md</code>; paper in <code>docs/paper/latex/</code></dd>
+  </dl>
+</div>
+
+<!-- ============================================================ CONTENTS -->
+<section class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span class="n">1</span>Overview and research question</li>
+    <li><span class="n">2</span>System architecture</li>
+    <li><span class="n">3</span>Data</li>
+    <li><span class="n">4</span>Forecasting agents</li>
+    <li><span class="n">5</span>Disagreement, critic and bounded revision</li>
+    <li><span class="n">6</span>Inventory policy and simulator</li>
+    <li><span class="n">7</span>Experimental protocol</li>
+    <li><span class="n">8</span>Results</li>
+    <li><span class="n">9</span>Post-hoc diagnosis</li>
+    <li><span class="n">10</span>Installation and running</li>
+    <li><span class="n">11</span>Reproducibility</li>
+    <li><span class="n">12</span>Repository structure</li>
+    <li><span class="n">13</span>Configuration reference</li>
+    <li><span class="n">14</span>Applications: dashboard, web app and retailer service</li>
+    <li><span class="n">15</span>Testing</li>
+    <li><span class="n">16</span>Rules, limitations and honest scope</li>
+    <li><span class="n">17</span>Glossary</li>
+  </ol>
+</section>
+
+<!-- ============================================================ 1 -->
+<section>
+  <h2>1. Overview and research question</h2>
+  <p>A shop that restocks every week has to decide how much of each item to order before demand is
+  known. RetailSense forecasts daily item demand with several specialised agents, each using one kind
+  of evidence, and asks whether a large language model (LLM) should be consulted only when those
+  agents disagree. If disagreement marks the risky forecasts, calling the LLM selectively should
+  give most of the benefit of always calling it, at a fraction of the cost.</p>
+
+  <div class="note"><strong>Research question.</strong> Does disagreement-triggered deliberation among
+  heterogeneous forecasting agents improve demand forecasting and restocking decisions compared with
+  statistical forecasting, a single model, simple multi-agent consensus and always-on
+  deliberation?</div>
+
+  <h3>Hypotheses</h3>
+  <table>
+    <tr><th>ID</th><th>Hypothesis</th><th>How it is tested</th></tr>
+    <tr><td>H1</td><td>Disagreement <i>D</i> is positively associated with forecast error</td><td>Spearman &rho; between <i>D</i> and relative error; AUROC of <i>D</i> for the worst 20% of errors</td></tr>
+    <tr><td>H2</td><td>Deliberation lowers error on the triggered cases</td><td>Share improved / worsened; Wilcoxon and item-clustered bootstrap</td></tr>
+    <tr><td>H3</td><td>Selective deliberation matches always-on at a fraction of the LLM cost</td><td>Equivalence test plus LLM calls per 1,000 forecasts</td></tr>
+    <tr><td>H4</td><td><i>D</i> is a better trigger than chance</td><td>Against a random trigger at the same rate (Diebold&ndash;Mariano, equivalence)</td></tr>
+    <tr><td>H5</td><td>Better forecasts give better inventory outcomes</td><td>Total cost from the shared (s, S) simulator</td></tr>
+  </table>
+  <p>H4 is the central test: if a random trigger at the same rate does as well, the disagreement
+  signal adds nothing.</p>
+
+  <h3>Answer in one paragraph</h3>
+  <p>Disagreement is a weak but statistically significant risk signal on both datasets. Selective
+  deliberation is statistically equivalent to always-on deliberation, to random triggering and to no
+  deliberation (within 0.5% of WAPE on India and 1% on Rohlik) while using 73&ndash;83% fewer LLM
+  calls. A single LightGBM model with all features (India) and ETS (Rohlik) are the most accurate
+  systems, and a zero-shot foundation model (Chronos-Bolt) is close to the best. Declared post-hoc
+  analyses show that the failure is not explained by correlated agents, a weak critic or an unlearned
+  trigger alone. In this setting, disagreement does not tell the LLM when to deliberate.</p>
+
+  <h3>Design principles</h3>
+  <ul>
+    <li><strong>The LLM never produces a number that is used.</strong> It may only propose a confidence
+    multiplier and a revised value inside an agent's own band; code clips both and computes the
+    forecast. The order quantity is computed by a deterministic policy.</li>
+    <li><strong>No future-data leakage.</strong> Every feature row carries an
+    <code>available_at</code> date and tests assert it never follows the prediction time.</li>
+    <li><strong>Frozen protocol.</strong> The threshold &tau; and the prompt are frozen on validation;
+    each test split is read by one locked run.</li>
+    <li><strong>Missing is missing.</strong> A missing signal or a failed agent is recorded as missing,
+    never zero-filled or forward-filled.</li>
+    <li><strong>Honest reporting.</strong> Results are reported whether or not RetailSense wins.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 2 -->
+<section>
+  <h2>2. System architecture</h2>
+  <p>Each forecast passes through the stages below. Solid boxes are deterministic code; dashed boxes
+  are LLM steps, which run only when the disagreement score reaches the threshold.</p>
+
+  <figure>
+  <svg viewBox="0 0 640 420" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"
+       aria-label="RetailSense pipeline">
+    <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1d2327"/></marker></defs>
+    <g font-size="12" fill="#1d2327">
+      <rect x="120" y="10" width="400" height="36" rx="4" fill="#e6f0f1" stroke="#0f5c63"/>
+      <text x="320" y="33" text-anchor="middle">Data revealed up to forecast origin t (sales, price, calendar, weather, interest)</text>
+
+      <g stroke="#0f5c63" fill="#fff">
+        <rect x="40"  y="80" width="120" height="44" rx="4"/>
+        <rect x="190" y="80" width="120" height="44" rx="4"/>
+        <rect x="340" y="80" width="120" height="44" rx="4"/>
+        <rect x="490" y="80" width="120" height="44" rx="4"/>
+      </g>
+      <text x="100" y="98" text-anchor="middle" font-weight="600">Historical</text>
+      <text x="100" y="114" text-anchor="middle" font-size="10">LightGBM + quantiles</text>
+      <text x="250" y="98" text-anchor="middle" font-weight="600">Calendar</text>
+      <text x="250" y="114" text-anchor="middle" font-size="10">festivals, payday, dates</text>
+      <text x="400" y="98" text-anchor="middle" font-weight="600">Weather</text>
+      <text x="400" y="114" text-anchor="middle" font-size="10">heat, rain, anomalies</text>
+      <text x="550" y="98" text-anchor="middle" font-weight="600">Trend</text>
+      <text x="550" y="114" text-anchor="middle" font-size="10">weekly search interest</text>
+
+      <rect x="120" y="160" width="400" height="36" rx="4" fill="#e6f0f1" stroke="#0f5c63"/>
+      <text x="320" y="183" text-anchor="middle">Confidence weights, consensus and disagreement score D (code)</text>
+
+      <rect x="60" y="240" width="200" height="44" rx="4" fill="#fff" stroke="#0f5c63"/>
+      <text x="160" y="258" text-anchor="middle" font-weight="600">Fast path</text>
+      <text x="160" y="274" text-anchor="middle" font-size="10">confidence-weighted consensus</text>
+
+      <rect x="380" y="232" width="220" height="40" rx="4" fill="#fff" stroke="#1d2327" stroke-dasharray="5 3"/>
+      <text x="490" y="250" text-anchor="middle" font-weight="600">LLM critic</text>
+      <text x="490" y="265" text-anchor="middle" font-size="10">explains the conflict, no numbers</text>
+      <rect x="380" y="290" width="220" height="40" rx="4" fill="#fff" stroke="#1d2327" stroke-dasharray="5 3"/>
+      <text x="490" y="308" text-anchor="middle" font-weight="600">One bounded revision</text>
+      <text x="490" y="323" text-anchor="middle" font-size="10">m in [0.25, 2], value in band; code clips</text>
+
+      <rect x="120" y="366" width="400" height="40" rx="4" fill="#e6f0f1" stroke="#0f5c63"/>
+      <text x="320" y="384" text-anchor="middle" font-weight="600">(s, S) inventory policy (code)</text>
+      <text x="320" y="399" text-anchor="middle" font-size="10">RESTOCK / HOLD / REDUCE and order quantity</text>
+    </g>
+    <g stroke="#1d2327" fill="none" marker-end="url(#a)">
+      <path d="M100,46 V80"/><path d="M250,46 V80"/><path d="M400,46 V80"/><path d="M550,46 V80"/>
+      <path d="M100,124 V160"/><path d="M250,124 V160"/><path d="M400,124 V160"/><path d="M550,124 V160"/>
+      <path d="M200,196 L160,240"/><path d="M440,196 L490,232"/>
+      <path d="M490,272 V290"/>
+      <path d="M160,284 V366"/><path d="M490,330 V366"/>
+    </g>
+    <g font-size="11" fill="#0f5c63" font-weight="600">
+      <text x="140" y="222">D &lt; &#964;</text><text x="478" y="222">D &#8805; &#964;</text>
+    </g>
+  </svg>
+  <figcaption>Figure 1. RetailSense pipeline. Every number that reaches the order quantity is
+  computed by code.</figcaption>
+  </figure>
+
+  <h3>Components and where they live</h3>
+  <table>
+    <tr><th>Component</th><th>Module</th><th>Responsibility</th></tr>
+    <tr><td>Data generation and loading</td><td><code>data/india_generator.py</code>, <code>data/load.py</code>, <code>data/rohlik.py</code></td><td>Build the raw datasets and the item subset</td></tr>
+    <tr><td>Signals and features</td><td><code>data/weather.py</code>, <code>data/trends.py</code>, <code>data/features.py</code></td><td>Weather archive, interest index, per-horizon features with <code>available_at</code></td></tr>
+    <tr><td>Agents</td><td><code>agents/</code></td><td>Output schema, Historical agent, residual adjusters, confidence</td></tr>
+    <tr><td>Orchestrator</td><td><code>orchestrator/</code></td><td>Disagreement, LLM client with cache, critic, revision, LangGraph state machine</td></tr>
+    <tr><td>Inventory</td><td><code>inventory/</code></td><td>(s, S) policy, costs, daily simulator</td></tr>
+    <tr><td>Evaluation</td><td><code>eval/</code></td><td>Baselines, metrics, statistics, phase runners, final run, post-hoc analyses</td></tr>
+    <tr><td>Storage</td><td><code>store/</code></td><td>SQLite run store, MLflow tracking, config hashing</td></tr>
+    <tr><td>Service</td><td><code>service/</code></td><td>Local retailer app (FastAPI) running the system on a store's own data</td></tr>
+  </table>
+</section>
+
+<!-- ============================================================ 3 -->
+<section>
+  <h2>3. Data</h2>
+  <h3>India: simulated kirana store (primary dataset)</h3>
+  <p>Store MUM_1 in Mumbai, department KIRANA, all 60 items (20 archetypes &times; 3 brands), daily from
+  5 January 2019 to 28 April 2024. Sales, prices, promotions and a weekly search-interest index are
+  generated by <code>retailsense.data.india_generator</code> from <code>configs/india_generator.yaml</code>
+  with a fixed seed (7). Weather (Open-Meteo archive for Mumbai, 19.08&deg;N 72.88&deg;E) and the
+  festival calendar are real. Demand is the product of base level, store scale, weekday, growth,
+  weather, festival, payday, promotion and interest-shock multipliers, with gamma-Poisson noise and
+  occasional stock-outs. Every multiplier is logged per item and day in
+  <code>data/raw/india/ground_truth.parquet</code>, which makes it possible to check whether the critic
+  identifies the driver that actually moved demand.</p>
+
+  <h3>Rohlik: real online-grocer sales (replication)</h3>
+  <p>The Kaggle Rohlik Sales Forecasting Challenge v2, warehouse Prague_1, 1 August 2020 to 2 June
+  2024. Items must have a record on every day from 27 April 2023; 63 of 857 qualify and the top 60 by
+  training volume are used. A day without a sales record stays missing. There is no search-interest
+  data in the frozen study, so the Trend agent is omitted.</p>
+
+  <h3>Splits</h3>
+  <table>
+    <tr><th>Dataset</th><th>Split</th><th>Days</th><th>Dates</th></tr>
+    <tr><td>India</td><td>Train</td><td>d_1&ndash;d_1799</td><td>5 Jan 2019 &ndash; 8 Dec 2023</td></tr>
+    <tr><td>India</td><td>Validation</td><td>d_1800&ndash;d_1885</td><td>9 Dec 2023 &ndash; 3 Mar 2024</td></tr>
+    <tr><td>India</td><td>Test</td><td>d_1886&ndash;d_1941</td><td>4 Mar &ndash; 28 Apr 2024</td></tr>
+    <tr><td>Rohlik</td><td>Train</td><td>d_1&ndash;d_1260</td><td>1 Aug 2020 &ndash; 12 Jan 2024</td></tr>
+    <tr><td>Rohlik</td><td>Validation</td><td>d_1261&ndash;d_1346</td><td>13 Jan &ndash; 7 Apr 2024</td></tr>
+    <tr><td>Rohlik</td><td>Test</td><td>d_1347&ndash;d_1402</td><td>8 Apr &ndash; 2 Jun 2024</td></tr>
+  </table>
+  <p>Splits are chronological and never shuffled. Models are fitted on train; every design decision
+  and &tau; use validation; each test split is read once, by the final run.</p>
+
+  <h3>Leakage controls</h3>
+  <ul>
+    <li>Every feature has an <code>available_at</code> date; <code>test_leakage.py</code> asserts
+    <code>available_at &le; prediction_time</code> for every row.</li>
+    <li>One direct model per horizon <i>h</i> = 1&hellip;7; its sales and price features are lagged at
+    least <i>h</i> days.</li>
+    <li>Weekly interest is usable only after its week closes, and trends windows are snapshotted once.</li>
+    <li>Agent code has no read path to the actuals; a test checks this.</li>
+    <li>The frozen runs use the Open-Meteo archive value for the target day. For Mumbai this equals the
+    archived issued short-lead forecast on every day used; for Prague, replacing it with the issued
+    forecast changed validation <i>h</i>=1 WAPE by at most 0.0004. A weather-noise ablation tests the
+    assumption further.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 4 -->
+<section>
+  <h2>4. Forecasting agents</h2>
+  <p>Every agent returns the same schema-validated object (<code>agents/schema.py</code>): a point
+  forecast for horizons 1&ndash;7, a 10&ndash;90% band, a confidence <i>c</i> &isin; [0, 1], key factors and
+  limitations. Output is validated at the orchestrator boundary; an invalid output gets one repair
+  retry, then the agent abstains. An abstaining or failed agent is excluded from the consensus and
+  flagged, never converted to a zero forecast.</p>
+
+  <table>
+    <tr><th>Agent</th><th>Model</th><th>Evidence</th></tr>
+    <tr><td>Historical</td><td>LightGBM, Tweedie objective (point) and two quantile models, &alpha; = 0.1 and 0.9 (band); one direct model per horizon</td><td>Lagged sales (lags <i>h</i>, 7, 14, 28), rolling means and deviations over 7, 28 and 56 days, share of zero-sales days, price, item identity</td></tr>
+    <tr><td>Calendar</td><td rowspan="3">Residual adjuster: forecast = <i>b</i> + <i>g<sub>i</sub></i>(<i>b</i>, <i>x<sub>i</sub></i>), where <i>b</i> is the shared baseline and <i>g<sub>i</sub></i> a LightGBM regressor trained on out-of-fold baseline residuals from 5 expanding time folds</td><td>Festivals and pre-festival ramps, payday, day of week and month</td></tr>
+    <tr><td>Weather</td><td>Target-day maximum temperature, rain, heavy rain and anomalies against a past-years climatology</td></tr>
+    <tr><td>Trend</td><td>Scale-invariant weekly search-interest features (India only)</td></tr>
+  </table>
+
+  <h3>Confidence</h3>
+  <p class="eq">c<sub>i</sub> = 1 / (1 + WAPE<sub>i</sub>)</p>
+  <p>computed over agent <i>i</i>'s out-of-sample forecasts for that item over the trailing 28 revealed
+  days (at least 14 needed).</p>
+
+  <h3>Why residual adjusters</h3>
+  <p>The context signals are weak on their own, so the frozen design lets each context agent correct
+  the baseline using only its own evidence. Out-of-fold residuals prevent an adjuster from learning
+  on residuals that the baseline has already fitted. The cost of this design, examined in Section 9,
+  is that all agents share the baseline, so their forecasts are highly correlated.</p>
+
+  <h3>Baselines</h3>
+  <table>
+    <tr><th>#</th><th>System</th><th>What it isolates</th></tr>
+    <tr><td>1</td><td>Seasonal naive</td><td>Floor</td></tr>
+    <tr><td>2</td><td>ETS(A,N,A) per item</td><td>Classical statistical baseline</td></tr>
+    <tr><td>3</td><td>LightGBM with all features</td><td>Agents vs one model with the same evidence</td></tr>
+    <tr><td>4</td><td>Historical agent only</td><td>Value of context</td></tr>
+    <tr><td>5</td><td>Multi-agent simple average</td><td>Value of combining</td></tr>
+    <tr><td>6</td><td>Multi-agent confidence-weighted</td><td>Value of confidence weights</td></tr>
+    <tr><td>7</td><td>Random trigger at the same rate</td><td>Value of <i>D</i> as a trigger</td></tr>
+    <tr><td>8</td><td>Always-on deliberation</td><td>Upper bound and cost reference</td></tr>
+    <tr><td>9</td><td>RetailSense (<i>D</i> &ge; &tau;)</td><td>Proposed method</td></tr>
+  </table>
+  <p>Systems 7&ndash;9 come from one always-on deliberation per test point, so they are paired subsets of
+  the same LLM answers.</p>
+</section>
+
+<!-- ============================================================ 5 -->
+<section>
+  <h2>5. Disagreement, critic and bounded revision</h2>
+  <h3>Disagreement score</h3>
+  <p>At horizon 1, with weights <i>w<sub>i</sub></i> = <i>c<sub>i</sub></i> / &Sigma;<i>c<sub>j</sub></i>
+  and consensus <i>&#563;</i> = &Sigma; <i>w<sub>i</sub> y<sub>i</sub></i>:</p>
+  <p class="eq">D = &radic;( &Sigma;<sub>i</sub> w<sub>i</sub> (y<sub>i</sub> &minus; &#563;)<sup>2</sup> ) / max(&#563;, 1)</p>
+  <p><i>D</i> is a confidence-weighted coefficient of variation. It is unchanged when every forecast is
+  scaled by a constant and is zero when all forecasts agree; both properties are unit-tested. A range
+  version <i>D</i><sub>range</sub> is computed as a sensitivity check.</p>
+
+  <h3>Threshold</h3>
+  <p>&tau; is the 80th percentile of validation <i>D</i>, written into the configuration before any
+  test data are read: &tau; = 0.076898 (India) and 0.065352 (Rohlik). It is never adjusted by eye or
+  after seeing test results.</p>
+
+  <h3>Critic</h3>
+  <p>Deliberation is one round in a LangGraph state machine (<code>orchestrator/graph.py</code>). The
+  critic receives each agent's horizon-1 forecast, band, confidence, evidence description, key factors
+  and limitations, plus 14 days of revealed sales. It returns a JSON report whose schema has no numeric
+  field: the main conflict, a strong / moderate / weak rating of each agent's evidence, missing
+  evidence and one question per agent.</p>
+
+  <h3>Bounded revision</h3>
+  <p>Each agent's revision returns a confidence multiplier <i>m<sub>i</sub></i> and a revised value
+  <i>y&prime;<sub>i</sub></i>. Holding its position is presented as a normal answer, and the hold rate
+  is tracked as a gate against social compliance. Code then:</p>
+  <ol>
+    <li>clips <i>m<sub>i</sub></i> to [0.25, 2.0] and <i>y&prime;<sub>i</sub></i> to the agent's own band;</li>
+    <li>sets <i>w&prime;<sub>i</sub></i> &prop; <i>c<sub>i</sub> m<sub>i</sub></i>;</li>
+    <li>computes the final forecast &Sigma; <i>w&prime;<sub>i</sub> y&prime;<sub>i</sub></i>.</li>
+  </ol>
+  <p>Invalid JSON receives one corrective retry; after that the case falls back to the fast consensus
+  and is logged. Every LLM call is cached on disk (<code>data/cache/</code>) and runs at temperature 0.
+  The frozen model is Llama 3.1 8B served locally by Ollama; the model id comes from the configuration
+  and any API key only from <code>.env</code>.</p>
+
+  <h3>LLM cache</h3>
+  <p>The cache key is the SHA-256 of model, prompt version, call name, prompt hash and user message.
+  An offline transport turns any cache miss into an error, which is how the frozen runs are replayed
+  without new LLM calls.</p>
+</section>
+
+<!-- ============================================================ 6 -->
+<section>
+  <h2>6. Inventory policy and simulator</h2>
+  <p>A periodic-review (s, S) policy (<code>inventory/policy.py</code>) turns the 7-day forecast and its
+  band into an action. With <i>&sigma;<sub>h</sub></i> = (upper<sub>h</sub> &minus; lower<sub>h</sub>) / 2.563:</p>
+  <p class="eq">s = &Sigma;<sub>h&le;L</sub> f<sub>h</sub> + z&radic;(&Sigma;<sub>h&le;L</sub> &sigma;<sub>h</sub><sup>2</sup>)
+  &nbsp;&nbsp;&nbsp; S = &Sigma;<sub>h&le;L+R</sub> f<sub>h</sub> + z&radic;(&Sigma;<sub>h&le;L+R</sub> &sigma;<sub>h</sub><sup>2</sup>)</p>
+  <p>When the inventory position IP (on hand plus on order) is at or below <i>s</i>, the policy orders
+  S &minus; IP rounded up to whole case packs (RESTOCK); otherwise it orders nothing (HOLD), and REDUCE
+  flags excess stock.</p>
+  <table>
+    <tr><th>Parameter</th><th class="num">Value</th></tr>
+    <tr><td>Lead time L</td><td class="num">3 days</td></tr>
+    <tr><td>Coverage / review period R</td><td class="num">7 days</td></tr>
+    <tr><td>Safety factor z</td><td class="num">1.65</td></tr>
+    <tr><td>Case pack</td><td class="num">6 units</td></tr>
+    <tr><td>Holding cost</td><td class="num">25% of price per year</td></tr>
+    <tr><td>Order cost</td><td class="num">$5 per order</td></tr>
+    <tr><td>Lost-sales cost</td><td class="num">1 &times; price</td></tr>
+  </table>
+  <p>The daily simulator (<code>inventory/simulator.py</code>) receives orders after the lead time, sells
+  up to stock, and records sales, lost sales and costs. Every baseline and RetailSense go through the
+  identical simulator. Two tests protect the decision: the policy is deterministic for the same
+  inputs, and the inventory code cannot import the LLM layer.</p>
+</section>
+
+<!-- ============================================================ 7 -->
+<section>
+  <h2>7. Experimental protocol</h2>
+  <h3>Phases</h3>
+  <table>
+    <tr><th>Phase</th><th>Split used</th><th>What happens</th></tr>
+    <tr><td>1&ndash;2</td><td>Train &rarr; validation</td><td>Data, features, agents and baselines; agent design fixed</td></tr>
+    <tr><td>3</td><td>Validation</td><td>H1 analysis; deliberation arms; &tau; and prompt v1 frozen</td></tr>
+    <tr><td>4</td><td>Validation</td><td>Inventory evaluation; dry run with a hold-stub LLM (systems 7&ndash;9 must equal system 6)</td></tr>
+    <tr><td>5</td><td>Test (once)</td><td>Final run: all 9 systems, backtests, ablations, tables, figures, SQLite, MLflow</td></tr>
+    <tr><td>Post hoc</td><td>Validation or stored outputs</td><td>Declared diagnosis; never refits or tunes on test data</td></tr>
+  </table>
+
+  <h3>Locking the test run</h3>
+  <p><code>run_experiment --final</code> refuses to run while &tau; is null, writes
+  <code>reports/&lt;dataset&gt;/final/RUN_LOCK.json</code> with the configuration hash, and refuses a
+  rerun under a different hash. India final run: hash <code>acbb90af8345</code>, 1&ndash;3 October
+  2026. Rohlik final run: hash <code>4d5d100636f4</code>, 3&ndash;6 October 2026.</p>
+
+  <h3>Metrics</h3>
+  <ul>
+    <li><strong>Accuracy:</strong> WAPE (primary), MAE, RMSE and sMAPE at <i>h</i>=1 and pooled over
+    <i>h</i>=1&ndash;7, with 95% bootstrap intervals over items.</li>
+    <li><strong>Disagreement:</strong> Spearman &rho; and AUROC for the worst 20% of relative errors.</li>
+    <li><strong>Cost:</strong> LLM calls per 1,000 forecasts, latency, trigger rate.</li>
+    <li><strong>Inventory:</strong> total cost, fill rate, lost sales.</li>
+  </ul>
+
+  <h3>Statistical tests</h3>
+  <ul>
+    <li>Diebold&ndash;Mariano on daily mean absolute error with the Harvey&ndash;Leybourne&ndash;Newbold
+    correction; paired item bootstrap; Wilcoxon on per-item WAPE (<code>eval/stats.py</code>).</li>
+    <li><strong>Equivalence</strong> by two one-sided tests: equivalent at margin &delta; if the 90%
+    item-bootstrap interval lies inside &plusmn;&delta;, reported at 0.5%, 1% and 2% of WAPE.</li>
+    <li><strong>Power:</strong> the minimum detectable effect at 80% power with each comparison.</li>
+    <li><strong>Clustering and multiplicity:</strong> H2 retested with an item-clustered bootstrap;
+    Holm correction over {H1, H2, H4} and over the eight system comparisons.</li>
+    <li>Rolling-origin backtests on three 56-day windows before validation.</li>
+  </ul>
+
+  <h3>Experiment tracking</h3>
+  <p>Every run logs parameters, metrics, the configuration hash and the git commit to MLflow
+  (<code>mlflow.db</code>), and run outputs go to SQLite (<code>data/retailsense.db</code>: forecast
+  runs, deliberations, inventory state, evaluations).</p>
+</section>
+
+<!-- ============================================================ 8 -->
+<section>
+  <h2>8. Results</h2>
+  <h3>Test results</h3>
+  <table>
+    <tr><th>#</th><th>System</th><th class="num">India h=1 WAPE</th><th class="num">India cost ($)</th><th class="num">Rohlik h=1 WAPE</th><th class="num">Rohlik cost ($)</th></tr>
+    <tr><td>1</td><td>Seasonal naive</td><td class="num">0.5530</td><td class="num">199,786</td><td class="num">0.2582</td><td class="num">509,438</td></tr>
+    <tr><td>2</td><td>ETS</td><td class="num">0.3904</td><td class="num best">138,621</td><td class="num best">0.1504</td><td class="num">262,890</td></tr>
+    <tr><td>3</td><td>LightGBM, all features</td><td class="num best">0.3688</td><td class="num">183,250</td><td class="num">0.1665</td><td class="num best">133,467</td></tr>
+    <tr><td>4</td><td>Historical agent</td><td class="num">0.3793</td><td class="num">232,910</td><td class="num">0.1760</td><td class="num">314,936</td></tr>
+    <tr><td>5</td><td>Multi-agent mean</td><td class="num">0.3778</td><td class="num">203,357</td><td class="num">&ndash;</td><td class="num">&ndash;</td></tr>
+    <tr><td>6</td><td>Multi-agent, confidence</td><td class="num">0.3777</td><td class="num">205,862</td><td class="num">0.1746</td><td class="num">287,802</td></tr>
+    <tr><td>7</td><td>Random trigger</td><td class="num">0.3778</td><td class="num">206,393</td><td class="num">0.1747</td><td class="num">289,319</td></tr>
+    <tr><td>8</td><td>Always-on deliberation</td><td class="num">0.3773</td><td class="num">199,868</td><td class="num">0.1741</td><td class="num">278,104</td></tr>
+    <tr><td>9</td><td>RetailSense</td><td class="num">0.3775</td><td class="num">206,313</td><td class="num">0.1745</td><td class="num">287,344</td></tr>
+  </table>
+  <p>Bold marks the best value in each column. All multi-agent systems (5&ndash;9) lie within 0.0005 WAPE
+  of each other. The cost ranking differs from the accuracy ranking because the policy also uses the
+  bands and lost-sales cost dominates.</p>
+
+  <h3>Hypotheses</h3>
+  <table>
+    <tr><th>Hypothesis</th><th>India (simulated)</th><th>Rohlik (real)</th></tr>
+    <tr><td>H1 disagreement vs error</td><td>Weak: &rho; = 0.072, AUROC 0.539</td><td>Weak: &rho; = 0.119, AUROC 0.579</td></tr>
+    <tr><td>H2 triggered cases improve</td><td>Tiny: 30.3% improved, 24.6% worsened; gain 0.027 units, Holm p = 0.044</td><td>Not supported (clustered p = 0.59)</td></tr>
+    <tr><td>H3 cheaper, same accuracy</td><td>Equivalent within 0.5%; 73% fewer LLM calls</td><td>Equivalent within 1%; 83% fewer LLM calls</td></tr>
+    <tr><td>H4 better than random</td><td>Not supported (DM p = 0.08)</td><td>Not supported (DM p = 0.57)</td></tr>
+    <tr><td>H5 better inventory</td><td>Not supported: ETS cheapest</td><td>Not supported: LightGBM cheapest</td></tr>
+  </table>
+
+  <figure class="pair">
+    <img src="paper/latex/figures/india_h1_deciles.png" alt="India error by D decile">
+    <img src="paper/latex/figures/rohlik_h1_deciles.png" alt="Rohlik error by D decile">
+    <figcaption>Figure 2. Consensus error by decile of disagreement D, India (left) and Rohlik (right)
+    test splits. The rise with D is weak and non-monotone on India and clearer on Rohlik.</figcaption>
+  </figure>
+  <figure class="pair">
+    <img src="paper/latex/figures/india_cost_accuracy.png" alt="India cost-accuracy curve">
+    <img src="paper/latex/figures/rohlik_cost_accuracy.png" alt="Rohlik cost-accuracy curve">
+    <figcaption>Figure 3. Cost&ndash;accuracy curves: WAPE and inventory cost as the share of deliberated
+    cases rises, for selective triggering (highest D first) and random triggering. Selective stays
+    inside the random band.</figcaption>
+  </figure>
+  <p>Full tables are in <code>reports/&lt;dataset&gt;/final/</code> and the write-up in
+  <code>reports/RESULTS.md</code>.</p>
+</section>
+
+<!-- ============================================================ 9 -->
+<section>
+  <h2>9. Post-hoc diagnosis</h2>
+  <p>These analyses were designed after the test runs. They use validation data, or rescore stored
+  outputs with cached LLM answers replayed offline; none refits or tunes on test data. The frozen files
+  were verified unchanged by checksum after each analysis. All are run by
+  <code>python -m retailsense.eval.posthoc &lt;steps&gt;</code> and write to
+  <code>reports/&lt;dataset&gt;/posthoc/</code>.</p>
+  <table>
+    <tr><th>Question</th><th>Analysis</th><th>Finding</th></tr>
+    <tr><td>Is the weak signal caused by correlated agents?</td><td>Item-aware and fully independent agents (no sales history, no baseline)</td><td>Independent agents have within-item correlation near zero, yet D adds at most 0.013 AUROC as a warning for Historical-agent errors</td></tr>
+    <tr><td>Does the critic find the true driver?</td><td>Critic ratings against logged India multipliers (840 test cases)</td><td>The 8B critic rates the driver "strong" 8.3 points more often [5.2, 11.7], but revisions do not move weight toward it</td></tr>
+    <tr><td>Does a stronger critic help?</td><td>Gemma 4 31B vs Llama 3.1 8B on the same 300 validation cases</td><td>31B moves weight toward the driver (+0.088) and lowers India always-on WAPE 0.3658 &rarr; 0.3625; selection by D is still no better than random</td></tr>
+    <tr><td>Independent agents with either critic?</td><td>300&ndash;600 validation cases per run, scored against the frozen systems on the same cases</td><td>Only large gain (Rohlik, 31B) repairs errors the weak agents introduce and stays worse than the frozen consensus; with 8B, deliberation barely moves WAPE (&le; 0.0003)</td></tr>
+    <tr><td>Can the trigger be learned?</td><td>Time-blocked CV on 1,500 stored deliberations</td><td>No better than random (&rho; with gain 0.023 and &minus;0.022); a perfect trigger would gain about 1% (India) and 4% (Rohlik)</td></tr>
+    <tr><td>Is a deep-learning baseline missing?</td><td>Zero-shot Chronos-Bolt (small)</td><td>Validation WAPE 0.3708 (India) and 0.1642 (Rohlik): tied with LightGBM, better than the consensus</td></tr>
+    <tr><td>Are "no difference" claims justified?</td><td>Equivalence, MDE, Holm, clustered H2</td><td>Arms equivalent within 0.5% (India) and 1% (Rohlik); MDE 0.1&ndash;1.3% of WAPE</td></tr>
+  </table>
+  <div class="note">Conclusion of the diagnosis: correlated agents, a weak critic and an unlearned
+  trigger each fail to explain the result on their own. A useful trigger would have to predict where
+  deliberation <em>helps</em>, probably from a cheap first critic pass rather than from the forecasts.</div>
+</section>
+
+<!-- ============================================================ 10 -->
+<section>
+  <h2>10. Installation and running</h2>
+  <h3>Requirements</h3>
+  <ul>
+    <li>Python 3.11; Node.js for the web app.</li>
+    <li>Ollama with <code>llama3.1</code> pulled for the local LLM (no API key needed), or an OpenRouter
+    / Google key in <code>.env</code> if the provider is switched.</li>
+    <li>Optional <code>posthoc</code> extra for the post-hoc baselines: xgboost, torch,
+    chronos-forecasting.</li>
+  </ul>
+  <h3>Setup</h3>
+<pre>python -m venv .venv
+.venv\Scripts\activate              # macOS/Linux: source .venv/bin/activate
+pip install -e ".[dev]"             # add ,posthoc for the post-hoc baselines
+copy .env.example .env              # fill in only if using a hosted LLM; never commit .env
+ollama pull llama3.1                # then keep "ollama serve" running (OLLAMA_NUM_PARALLEL=4)</pre>
+
+  <h3>Pipeline commands</h3>
+  <table>
+    <tr><th>Step</th><th>Command</th><th>Output</th></tr>
+    <tr><td>Data</td><td><code>python -m retailsense.data.india_generator</code></td><td><code>data/raw/india/</code></td></tr>
+    <tr><td>Item subset</td><td><code>python -m retailsense.data.load</code></td><td><code>configs/subset.yaml</code></td></tr>
+    <tr><td>Signals</td><td><code>python -m retailsense.data.weather</code>, <code>.trends</code></td><td><code>data/processed/india/</code></td></tr>
+    <tr><td>Features</td><td><code>python -m retailsense.data.features</code></td><td><code>features.parquet</code></td></tr>
+    <tr><td>Agents and baselines</td><td><code>python -m retailsense.eval.run_experiment --phase 2</code></td><td>MLflow <code>india_phase2</code></td></tr>
+    <tr><td>H1 analysis</td><td><code>python -m retailsense.eval.h1_analysis</code></td><td><code>reports/india/h1_*</code></td></tr>
+    <tr><td>Deliberation arms</td><td><code>python -m retailsense.eval.deliberation_eval [--freeze]</code></td><td><code>reports/india/phase3b_*</code></td></tr>
+    <tr><td>Inventory</td><td><code>python -m retailsense.eval.inventory_eval</code></td><td><code>reports/india/phase4_*</code></td></tr>
+    <tr><td>Dry run</td><td><code>python -m retailsense.eval.run_experiment --dry-run</code></td><td><code>reports/india/dryrun/</code></td></tr>
+    <tr><td>Final test run</td><td><code>python -m retailsense.eval.run_experiment --final</code></td><td><code>reports/india/final/</code></td></tr>
+    <tr><td>Next-week forecast</td><td><code>python -m retailsense.forecast_future</code></td><td><code>reports/india/future_forecast.csv</code></td></tr>
+    <tr><td>Post-hoc analyses</td><td><code>python -m retailsense.eval.posthoc [steps]</code></td><td><code>reports/india/posthoc/</code></td></tr>
+  </table>
+  <p>For Rohlik, set <code>RETAILSENSE_CONFIG=configs/experiment_rohlik.yaml</code> before any command.</p>
+</section>
+
+<!-- ============================================================ 11 -->
+<section>
+  <h2>11. Reproducibility</h2>
+<pre>bash reproduce.sh              # full pipeline; LLM answers come from the cache when present
+bash reproduce.sh --offline    # cache only: any LLM cache miss is an error</pre>
+  <p>Every API and LLM response is cached under <code>data/cache/</code>. Sharing that folder lets
+  someone else rebuild every result without a single API call. Every configuration is hashed, and the
+  hash is stored with the run lock and in MLflow.</p>
+
+  <h3>Reproduction check (13 October 2026)</h3>
+  <p>Both frozen pipelines (India and Rohlik) were rerun from <code>features.parquet</code> with the current code
+  into a separate folder, using only cached LLM answers. Nothing frozen was modified.</p>
+  <table>
+    <tr><th>Item</th><th>Result</th></tr>
+    <tr><td>Configuration hash</td><td><code>acbb90af8345</code> (India) and <code>4d5d100636f4</code> (Rohlik), identical to the frozen run locks</td></tr>
+    <tr><td>New LLM calls</td><td>0</td></tr>
+    <tr><td>Validation, test and backtest forecasts (all parquet files)</td><td>Byte-identical</td></tr>
+    <tr><td>Result tables, case study, run lock</td><td>Byte-identical</td></tr>
+    <tr><td><code>table_latency_llm.csv</code></td><td>Only the two latency columns differ (cache replay is milliseconds); trigger rates and LLM calls identical</td></tr>
+    <tr><td>Frozen files afterwards</td><td>All checksums unchanged (India 42/42, Rohlik 37/37)</td></tr>
+  </table>
+</section>
+
+<!-- ============================================================ 12 -->
+<section>
+  <h2>12. Repository structure</h2>
+<pre>configs/              experiment.yaml (every number), experiment_rohlik.yaml, inventory.yaml,
+                      india_generator.yaml, subset*.yaml, posthoc.yaml, service.yaml
+src/retailsense/
+  config.py           pydantic configuration models and loaders
+  data/               India generator, Rohlik loader, item subset, weather, trends, features
+  agents/             schema, Historical (LightGBM + quantiles), residual adjusters, confidence
+  orchestrator/       disagreement, LLM client (cache, JSON schema), critic, revise, LangGraph graph
+  inventory/          (s, S) policy, costs, daily simulator
+  eval/               baselines, metrics, stats, run_experiment, h1_analysis, deliberation_eval,
+                      inventory_eval, final, posthoc
+  store/              SQLite run store, MLflow helpers, config hashing
+  service/            local retailer app (FastAPI) and per-store runs
+  forecast_future.py  next-week forecast after the experiment
+  web_export.py       exports stored results to JSON for the web app
+app/                  Streamlit dashboard
+web/                  Next.js web app (results viewer and retailer front end)
+tests/                pytest suite
+reports/              tables, figures, RESULTS.md, posthoc/ outputs
+docs/                 blueprint, rules, architecture, design, PROGRESS.md, paper/
+data/                 raw/, processed/, cache/ (LLM and API), retailsense.db
+reproduce.sh          one-command reproduction</pre>
+</section>
+
+<!-- ============================================================ 13 -->
+<section>
+  <h2>13. Configuration reference</h2>
+  <p>Every number that can affect a result lives in configuration, loaded and validated with pydantic
+  (<code>config.py</code>). Nothing is hard-coded.</p>
+  <table>
+    <tr><th>Key</th><th>Value</th><th>Meaning</th></tr>
+    <tr><td><code>data.store</code>, <code>top_n</code></td><td>MUM_1, 60</td><td>Store and number of items (ranked on train only)</td></tr>
+    <tr><td><code>agents.horizons</code></td><td>1&ndash;7</td><td>One direct model per horizon</td></tr>
+    <tr><td><code>agents.confidence_window</code></td><td>28 (min 14)</td><td>Trailing days for confidence</td></tr>
+    <tr><td><code>agents.oof_folds</code></td><td>5</td><td>Expanding folds for residual training</td></tr>
+    <tr><td><code>disagreement</code></td><td>cv, floor 1.0, quantile 0.80</td><td>D definition and &tau; quantile</td></tr>
+    <tr><td><code>analysis.worst_share</code></td><td>0.20</td><td>"Worst errors" for AUROC</td></tr>
+    <tr><td><code>analysis.bootstrap</code></td><td>1,000</td><td>Bootstrap resamples over items</td></tr>
+    <tr><td><code>deliberation.rounds</code></td><td>1</td><td>Single bounded revision</td></tr>
+    <tr><td><code>deliberation.m_bounds</code></td><td>[0.25, 2.0]</td><td>Confidence-multiplier limits</td></tr>
+    <tr><td><code>deliberation.provider</code>, <code>model</code></td><td>ollama, llama3.1:latest</td><td>Frozen LLM</td></tr>
+    <tr><td><code>deliberation.temperature</code></td><td>0</td><td>Deterministic answers</td></tr>
+    <tr><td><code>deliberation.prompt_version</code></td><td>v1 (frozen 1 Oct 2026)</td><td>Part of the cache key</td></tr>
+    <tr><td><code>deliberation.history_days</code></td><td>14</td><td>Revealed sales shown to the critic</td></tr>
+    <tr><td><code>deliberation.max_invalid_retries</code></td><td>1</td><td>Invalid JSON &rarr; retry &rarr; fast path</td></tr>
+    <tr><td><code>deliberation.tau</code></td><td>0.076898 (India)</td><td>Frozen threshold</td></tr>
+    <tr><td><code>inventory.yaml</code></td><td>L 3, R 7, z 1.65, pack 6</td><td>Policy and cost parameters (Section 6)</td></tr>
+  </table>
+</section>
+
+<!-- ============================================================ 14 -->
+<section>
+  <h2>14. Applications</h2>
+  <p>The applications read stored results; they never retrain a model behind the reported numbers.</p>
+  <h3>Streamlit dashboard</h3>
+<pre>streamlit run app/streamlit_app.py</pre>
+  <p>Four views: <strong>Forecast</strong> (agents with bands, D against &tau;, deliberation badge,
+  action), <strong>Explain</strong> (key factors, critic report, initial vs revised forecasts, reason
+  for the action), <strong>Evaluate</strong> (all tables and figures) and <strong>Live</strong> (demo
+  mode: today's Open-Meteo forecast for Mumbai beside a replayed item's stored forecasts).</p>
+
+  <h3>Next.js web app</h3>
+<pre>python -m retailsense.web_export        # SQLite + reports/ -> web/public/data/
+cd web && npm install && npm run dev    # http://localhost:3000
+npm run build                           # static site in web/out/</pre>
+  <p>Built with Next.js, TypeScript, Tailwind CSS, shadcn/ui, Apache ECharts and TanStack Query. It
+  has an overview of both studies plus the Forecast, Explain, Evaluate, Live and Next-week views.</p>
+
+  <h3>Retailer service</h3>
+<pre>cd web && npm run build && cd ..
+python -m retailsense.service.app       # http://localhost:8000/retailer/</pre>
+  <p>A local app with no accounts; store data never leaves the machine. A retailer adds a store (its
+  town sets the weather and public holidays), uploads a sales CSV (<code>date, item_id, units_sold,
+  price</code>, at least 400 days), optionally a stock CSV and a Google Trends download, and receives a
+  7-day forecast and a RESTOCK / HOLD / REDUCE order per item, with the agents' evidence and the
+  critic's review for items they disagree on. Each run uses the research system on the store's own
+  data, with &tau; set to the 80th percentile of D over the store's last 86 days. If the LLM stops
+  answering, the run still finishes and the affected items are labelled "LLM unavailable". It
+  listens on 127.0.0.1 only. The critic's LLM is set in <code>configs/service.yaml</code>.</p>
+  <div class="note">The applications are demonstrations. They do not access live point-of-sale data,
+  and the India study's sales are simulated.</div>
+</section>
+
+<!-- ============================================================ 15 -->
+<section>
+  <h2>15. Testing</h2>
+<pre>pytest -q          # 134 tests pass, 1 expected failure
+ruff check src tests</pre>
+  <p>The mandatory tests protect the project's validity and are never skipped:</p>
+  <table>
+    <tr><th>Test</th><th>Asserts</th></tr>
+    <tr><td><code>test_leakage.py::test_no_future_features</code></td><td>No feature's source timestamp is at or after the prediction time</td></tr>
+    <tr><td><code>test_leakage.py::test_actuals_isolated</code></td><td>Agent code paths cannot read the actuals</td></tr>
+    <tr><td><code>test_leakage.py::test_weather_is_forecast</code></td><td>The weather observation endpoint is never called</td></tr>
+    <tr><td><code>test_disagreement.py::test_scale_invariance</code></td><td>D is unchanged when all forecasts scale by a constant</td></tr>
+    <tr><td><code>test_disagreement.py::test_identical_forecasts</code></td><td>Identical forecasts give D = 0</td></tr>
+    <tr><td><code>test_policy.py::test_determinism</code></td><td>Same inputs give the same action and quantity</td></tr>
+    <tr><td><code>test_policy.py::test_llm_cannot_set_quantity</code></td><td>No code path from LLM output to order quantity</td></tr>
+    <tr><td><code>test_schema.py::test_invalid_agent_output</code></td><td>Invalid output leads to abstention, never a zero forecast</td></tr>
+  </table>
+  <p>Other suites cover the agents, deliberation, final run, metrics, statistics, simulator, data
+  loading, the India generator, post-hoc analyses, the next-week forecast, the dashboard and the
+  retailer service.</p>
+</section>
+
+<!-- ============================================================ 16 -->
+<section>
+  <h2>16. Rules, limitations and honest scope</h2>
+  <h3>Non-negotiable rules</h3>
+  <ul>
+    <li>No future-data leakage; the test split is touched only by the final run.</li>
+    <li>Tune only on validation; &tau; is calibrated by the documented sweep and never adjusted after
+    seeing test results; the prompt is frozen before the test run.</li>
+    <li>LLM outputs are pydantic-validated JSON; on failure, one retry, then the fast consensus.</li>
+    <li>The LLM never writes the final forecast or an order quantity.</li>
+    <li>Every baseline and RetailSense go through the identical inventory simulator.</li>
+    <li>API keys come only from <code>.env</code>; every LLM and API call is cached.</li>
+    <li>Stay in scope: no reinforcement learning, dynamic pricing, extra agents or multi-round
+    deliberation.</li>
+  </ul>
+  <h3>Limitations</h3>
+  <ul>
+    <li><strong>Simulated primary data.</strong> India results describe method behaviour under known
+    drivers, not a real store. Rohlik agrees on every hypothesis except H2.</li>
+    <li><strong>Post-hoc diagnosis.</strong> Designed after the test runs; uses validation data and small
+    deliberation samples (300&ndash;600 cases). Equivalence margins were fixed after the test run.</li>
+    <li><strong>Critics and seeds.</strong> Two LLMs were tested; the 31B critic received the schema as
+    text. The frozen runs used one model seed; four extra seeds on validation kept systems 5&ndash;9
+    within seed noise.</li>
+    <li><strong>Signals.</strong> The India interest index is generated and built to lead demand; the
+    India validation window has no rainy days and no major festival.</li>
+    <li><strong>Censored demand.</strong> Sales are capped on stock-out days (1.2% of India and 5.0% of
+    Rohlik test item-days); excluding them leaves the ranking of systems 1&ndash;6 unchanged.</li>
+    <li><strong>Inventory.</strong> Simulated; z = 1.65 is not cost-optimal, though a 0.99 service level
+    leaves ETS cheapest on India.</li>
+  </ul>
+  <h3>Future work</h3>
+  <ul>
+    <li>Route on signals from a cheap first critic pass rather than from the forecasts.</li>
+    <li>Test stronger critics with constrained output across several seeds.</li>
+    <li>Build context agents on evidence strong enough to stand alone.</li>
+    <li>A second confirmatory study on a fresh India test window, generated by a continuation of the
+    simulator that leaves days 1&ndash;1941 untouched, and replication on further real datasets.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 17 -->
+<section>
+  <h2>17. Glossary</h2>
+  <table>
+    <tr><th>Term</th><th>Meaning</th></tr>
+    <tr><td>Agent</td><td>A forecaster that uses one kind of evidence and returns a schema-validated forecast</td></tr>
+    <tr><td>AUROC</td><td>Area under the ROC curve; 0.5 is chance</td></tr>
+    <tr><td>Always-on</td><td>Deliberating on every forecast</td></tr>
+    <tr><td>Band</td><td>The 10&ndash;90% prediction interval of an agent</td></tr>
+    <tr><td>Consensus</td><td>Confidence-weighted average of the agents' forecasts</td></tr>
+    <tr><td>Critic</td><td>The LLM step that explains why agents disagree; it outputs no numbers</td></tr>
+    <tr><td>D</td><td>Normalised, confidence-weighted disagreement between agents</td></tr>
+    <tr><td>DM test</td><td>Diebold&ndash;Mariano test for equal forecast accuracy</td></tr>
+    <tr><td>ETS</td><td>Exponential smoothing state-space model</td></tr>
+    <tr><td>Fast path</td><td>Returning the consensus without calling the LLM</td></tr>
+    <tr><td>Hold rate</td><td>Share of revisions in which an agent keeps its forecast</td></tr>
+    <tr><td>Kirana</td><td>A neighbourhood grocery shop in India</td></tr>
+    <tr><td>MDE</td><td>Minimum detectable effect at 80% power</td></tr>
+    <tr><td>OOF</td><td>Out-of-fold: predictions made on data not used to fit the model</td></tr>
+    <tr><td>(s, S) policy</td><td>Order up to S when the inventory position falls to s or below</td></tr>
+    <tr><td>&tau;</td><td>The frozen disagreement threshold that triggers deliberation</td></tr>
+    <tr><td>TOST</td><td>Two one-sided tests, the equivalence-testing procedure</td></tr>
+    <tr><td>WAPE</td><td>Weighted absolute percentage error: &Sigma;|y &minus; &#375;| / &Sigma;y</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

@@ -426,3 +426,386 @@ tokens per deliberated case).
 - Not used by the frozen Rohlik study: the folder is not the config's `trends_dir`, so re-running
   the frozen config still gives the published 3-agent results. A 4-agent Rohlik study would be a
   separate, declared follow-up.
+
+## Retailer web app (2026-10-06, after both studies)
+Product work on top of the frozen research; no research result, config or prompt changed.
+
+### Built
+- `service/store_run.py`: one store's CSV upload -> the research system end to end (raw layout,
+  features, tau calibration via `run_validation` on the store's last 86 days, `agent_table` +
+  `retailsense` routing with the LLM critic, `decide` with the store's stock and rules) ->
+  `result.json`. Live-use differences: Open-Meteo forecast API for days the archive does not reach;
+  `holidays` for the store's country (all typed National); no Trend agent.
+- `service/app.py` (FastAPI), a local app (author's choice 2026-10-06, replacing a first hosted
+  version with accounts): listens on 127.0.0.1 only, no accounts; Host must be localhost and
+  writes from other websites are refused. Stores, CSV uploads validated at the boundary, a
+  one-worker run queue (one subprocess per run on a copy of the files), results. Serves `web/out`
+  at `/`; `python -m retailsense.service.app` starts it and opens the browser.
+- `configs/service.yaml`: LLM provider/model (Ollama now; OpenRouter/Gemini by config) and limits.
+- Web: `/retailer` (stores, how it works, templates), `/retailer/store?id=`: uploads, run progress,
+  orders table + CSV download, per-item forecast chart, agent evidence, D vs tau, critic review.
+- Small shared changes: `weather.fetch(url=...)`; `forecast_future.agent_table` skips the Trend
+  agent without interest columns (as `run_validation` does); `retailsense()` also returns states.
+- `tests/test_service.py`: localhost-only guards, upload validation, run guards, a missing sales day
+  stays missing (never zero).
+
+### Checked
+- 15 items x 521 days (India data shifted to end yesterday): full run 4 min 22 s cold, 2.5 min with
+  caches; tau 0.042; 2 of 15 items deliberated (8 LLM calls); future-day weather filled from the
+  forecast API. Whole flow driven over HTTP and screenshotted at desktop and phone width.
+
+### Open issues
+- Installing it on a retailer's computer still needs Python, the venv, the built site and Ollama;
+  there is no installer.
+- One run at a time; no store deletion.
+- The research finding stands: RetailSense was not more accurate than LightGBM / ETS on either
+  study. The retailer page says so.
+
+## Post-hoc validation checks (2026-10-11, after both studies)
+Declared after the frozen test runs; validation split only, nothing feeds back into the study.
+`python -m retailsense.eval.posthoc` -> `reports/<dataset>/posthoc/`.
+
+- Band tails (`val_band_tails.csv`): the 10-90% bands miss above the upper bound on 12-13% of
+  India days for the LightGBM systems (target 10%) and ETS 12%; on Rohlik LightGBM-all-features
+  misses 12% above and 14% below. On India the LightGBM forecasts are biased low (mean forecast /
+  mean actual 0.94 vs ETS 0.97) with narrower bands (width 1.08x vs 1.18x mean demand), the likely
+  reason ETS has fewer lost sales.
+- Learners (`val_learners.csv`): the all-features control refit with XGBoost and sklearn HGB, same
+  features and early-stopping scheme, settings mirrored from LightGBM, not tuned. The LightGBM
+  refit reproduces the stored control exactly. h=1 WAPE, India: LightGBM 0.3670, XGBoost 0.3682
+  (DM p = 0.31), HGB 0.3700 (p = 0.007). Rohlik: LightGBM 0.1620, XGBoost 0.1574 (p = 0.04),
+  HGB 0.1578 (p = 0.09). No learner is better on both datasets.
+- New optional dependency group `posthoc` (xgboost).
+- D x error quadrants (`d_error_quadrants.csv`, architecture.md 4.4; stored outputs, frozen tau,
+  worst 20 % relative error as in H1). Most of the worst errors have low D: India 76 % (validation)
+  / 68 % (test), Rohlik 72 % / 78 %. The high-D quadrant catches only slightly more than a random
+  trigger at the same rate would (India test 32 % vs 26.5 %; Rohlik test 22 % vs 17 %). In 100 %
+  of the worst-error points every agent misses on the same side of the actual, so these are
+  shared blind spots: no spread measure can flag them, and re-weighting alone cannot fix them (any
+  weighted consensus stays on the same side); only revised values inside the bands can move it.
+  Same-side misses are 86-89 % even among low-error points, consistent with agent correlation
+  above 0.95.
+
+## Go/pivot decision for the RQ2 smoke test (recorded 2026-10-11, retrospectively)
+phases.md Phase 1.5 requires a written go/pivot decision. It was not written at the time; this
+entry records it after the fact and changes nothing that was run.
+- Evidence (Phase 3a, 2026-09-29, validation, h=1): Spearman rho(D, relative error) = 0.064
+  [0.026, 0.102], AUROC worst-20 % = 0.535. Run with 4 agents, not the 2 the plan describes.
+- Rule: rho < 0.15 -> "mechanism assumption not supported; pivot the framing".
+- Decision: **pivot**. The study continued as planned (full system, all baselines, frozen tau,
+  one test run) but its claim is a characterisation, "when does inter-agent disagreement carry
+  information about forecast error, and when does it not", not an improvement claim. The paper
+  already reports H1 as weak, H4 as not supported and RetailSense as not beating LightGBM or ETS.
+- Not done, although the plan's weak-signal branch suggests it: no agent redesign after the
+  pairwise-correlation gate failed (India 0.987). Reported as a limitation.
+
+## Limitations addressed post hoc (2026-10-11)
+No frozen file changed (checksums of every phase2/final_test/backtest/oof parquet verified after
+the runs). New steps in `eval/posthoc.py`; seeds in `configs/posthoc.yaml` (kept out of
+experiment*.yaml so the RUN_LOCK config hash is unchanged).
+- **Seeds** (`val_seeds.csv`, validation, systems 1-6, seeds 42 + 1-4): h=1 WAPE seed SD
+  0.0004-0.0006 India, 0.0007-0.0023 Rohlik. LightGBM-all-features beats multi-agent consensus
+  under every seed (gap 0.0097 +/- 0.0006 India, 0.0098 +/- 0.0026 Rohlik). India H1 rho
+  0.027-0.064 (mean 0.044), AUROC 0.505-0.535; seed 42 is the most favourable seed. Rohlik rho
+  0.085-0.104.
+- **Weather** (`val_issued_weather.csv`): Open-Meteo archive == historical-forecast archive for
+  Mumbai on every day of the last train year, validation and test (MAE 0.00). Prague differs
+  (validation MAE 0.86 C tmax, 1.08 C tmin, 0.57 mm); swapping in issued forecasts moves Rohlik
+  h=1 WAPE by -0.0001 (Weather agent) and -0.0004 (control). The observed-input run reproduces the
+  stored validation numbers exactly. `weather.add_forecast_noise` was split into
+  `apply_weather_error` (output verified identical to the committed version).
+- **Censoring** (`censoring.csv`): 1.2 % India / 5.0 % Rohlik test item-days censored; WAPE
+  changes <= 0.016; test ranking unchanged on both datasets; on Rohlik validation ETS and
+  Historical (0.0007 apart) swap places.
+- **z**: existing validation sensitivity already shows ETS cheapest at 0.99 service level (every
+  system's India cost falls 26-33% from 0.95 to 0.99).
+- Paper §6.6 rewritten with all of the above.
+- Still open (need a new study or GPU hours): agent correlation / item-blind agents, stronger LLM,
+  disable-critic ablation, deep-learning baseline, synthetic India data.
+
+## Trend agent added to the retailer app (2026-10-12)
+- Optional third upload: a Google Trends "Interest over time" download (weekly, 1-5 terms,
+  >= 52 weeks; validated in `store_run.read_trends`). A run rewrites it per term in the layout
+  `data/trends.py` reads and swaps the store's terms in for the experiment's keywords; the
+  research pipeline then fits the Trend agent unchanged. `DELETE /api/stores/{id}/trends` goes
+  back to three agents. Web: "Search interest (optional)" card + `templates/trends_template.csv`;
+  `samples/demo_trends.csv` is synthetic (India's generated interest shifted 889 days to match
+  the demo sales).
+- Demo run (store 3, 20 items, OpenRouter nemotron): 4 agents fitted, tau 0.0328.
+- Found while testing: the OpenRouter free tier allows 50 requests/day; when it ran out the run
+  crashed. Now `forecast_future.without_llm` finishes the run: cached answers replay, items that
+  need the LLM afterwards get the fast consensus with fallback "LLM unavailable: ...". A daily
+  quota 429 is no longer retried. The frozen study path (eval/final.py) is unchanged.
+
+## Follow-up: Rohlik with a Trend agent (declared 2026-10-12, validation only)
+`configs/experiment_rohlik_trends.yaml` (dataset `rohlik_trends`, own processed/DB/reports, tau
+null, no `final` block): the frozen Rohlik setup plus Google Trends CZ "potraviny" and "rohlik"
+(`data/raw/rohlik/trends_followup/`). No LLM step yet (Ollama not running; OpenRouter free quota
+too small for ~1,500 cases). Validation, h=1, 3 agents (frozen) -> 4 agents:
+- Historical+Trend WAPE 0.1801 vs Historical 0.1717: the Trend agent alone is worse (+0.0084);
+  on its 10 % largest adjustments 0.1882 vs 0.1751.
+- Confidence-weighted consensus 0.1689 -> 0.1710 (worse); LightGBM all features 0.1620 -> 0.1657
+  (adding the interest features hurts the single model too).
+- H1: rho 0.099 [0.053, 0.135] -> 0.116 [0.069, 0.157]; AUROC 0.570 -> 0.581. CIs overlap.
+  D still adds nothing beyond the Historical band width (AUROC 0.7085 -> 0.7086).
+- Independence gate still fails: agent forecast correlation 0.993-0.998. Trend adjustments
+  correlate 0.69 with Weather adjustments (both seasonal).
+- Verdict: on this data a Trend agent makes forecasts slightly worse and D slightly (not
+  significantly) more informative. The frozen 3-agent results stand.
+
+## Post-hoc: item-aware context agents and a learned trigger (declared 2026-10-12, validation only)
+Two limitations from paper §6.6 attacked without new LLM calls (`eval/posthoc.py` steps
+`itemaware` and `router`; outputs `reports/<ds>/posthoc/val_item_aware.csv`, `val_router.csv`).
+Frozen files checked by checksum before and after: unchanged (oof_baseline restored).
+
+**Item-aware context agents** (Calendar/Weather/Trend also get `item_id`; nothing else changed;
+tag `itemaware`). Validation h=1:
+
+| | India frozen | India item-aware | Rohlik frozen | Rohlik item-aware |
+|---|---|---|---|---|
+| agent forecast corr (gate < 0.95) | 0.986-1.000 | 0.984-0.9996 | 0.994-0.997 | 0.988-0.996 |
+| consensus WAPE | 0.3770 | 0.3751 | 0.1689 | 0.1684 |
+| H1 rho / AUROC | 0.064 / 0.535 | 0.034 / 0.519 | 0.099 / 0.570 | 0.078 / 0.557 |
+| AUROC band+vol -> +D | 0.599 -> 0.603 | 0.593 -> 0.595 | 0.7124 -> 0.7124 | 0.7138 -> 0.7139 |
+
+India agents each improve slightly (Calendar 0.3733 -> 0.3703); Rohlik agents get worse (Calendar
+0.1731 -> 0.1795, Weather 0.1757 -> 0.1787; overfitting). The gate still fails and D gets weaker.
+Diagnostic: the pooled forecast correlation the gate uses is dominated by between-item sales
+level; the adjustments themselves correlate only 0.14-0.57 (India) and 0.35 (Rohlik). The India
+Trend agent is a near copy of Historical (within-item corr 1.000 frozen, 0.993 item-aware; its
+cross-item adjustment spread per day 0.15 units). The gate definition is NOT changed post hoc.
+Verdict: item identity does not fix the independence failure.
+
+**Learned trigger** (replace D >= tau with a model of the deliberation gain, inputs known before
+any LLM call: D, D_range, Historical band width, volume; HGB, 5 time blocks, phase3b always-on
+sample n = 1500). h=1 WAPE at trigger rate 0.2:
+
+| | learned | by D | random (sd) | oracle | none | always-on |
+|---|---|---|---|---|---|---|
+| India | 0.37716 | 0.37718 | 0.37717 (0.00019) | 0.37344 | 0.37714 | 0.37726 |
+| Rohlik | 0.16171 | 0.16192 | 0.16158 (0.00059) | 0.15522 | 0.16193 | 0.16020 |
+
+Spearman(gain, learned score) 0.023 India, -0.022 Rohlik (D: 0.017, -0.028). Deliberation helped
+35.7 % / hurt 40.5 % of cases (India), 31.1 % / 31.5 % (Rohlik). The oracle shows headroom
+(about 1 % India, 4 % Rohlik), but nothing available before the LLM call predicts which cases
+deliberation fixes. Verdict: a learned router does not rescue selective deliberation.
+
+## Post-hoc: inference fixes and the critic against the true driver (declared 2026-10-12)
+Answers the review points "claims stronger than the statistics" and "effects are tiny".
+`eval/posthoc.py` steps `inference` (test, STORED outputs: the frozen test window rebuilt from
+stored forecasts with an offline LLM transport, 0 LLM calls, nothing refit or tuned) and
+`attribution` (India). Outputs `reports/<ds>/posthoc/test_equivalence.csv`, `test_inference.csv`,
+`test_h2_clustered.csv`, `critic_attribution.csv`. Frozen files unchanged (checksums).
+
+**Equivalence (TOST by the 90% item-bootstrap CI) and minimum detectable effects, h=1 WAPE.**
+Margins are relative to the no-deliberation WAPE and were fixed post hoc, so three are reported.
+
+| test split | diff | 90% CI | MDE (80% power) | equivalent at 0.5% / 1% / 2% |
+|---|---|---|---|---|
+| India H3 selective - always-on | +0.0002 | [-0.0003, 0.0007] | 0.0008 | yes / yes / yes |
+| India H4 selective - random | -0.0003 | [-0.0005, -0.00004] | 0.0004 | yes / yes / yes |
+| India always-on - none | -0.0004 | [-0.0009, 0.0001] | 0.0009 | yes / yes / yes |
+| Rohlik H3 | +0.0004 | [-0.0009, 0.0016] | 0.0021 | no / yes / yes |
+| Rohlik H4 | -0.0002 | [-0.0009, 0.0004] | 0.0012 | no / yes / yes |
+| Rohlik always-on - none | -0.0005 | [-0.0017, 0.0009] | 0.0022 | no / yes / yes |
+
+MDEs are 0.5-2.2 seed standard deviations (seed sd 0.0004 India, 0.0023 Rohlik), so the nulls are
+informative: differences larger than about 0.1% (India) and 1% (Rohlik) of WAPE are excluded.
+
+**H2 with cases clustered by item** (item bootstrap of the mean gain on triggered cases): India
+p = 0.022 (Wilcoxon, cases independent, 0.007), mean gain 0.027 units [0.003, 0.052]; Rohlik
+p = 0.59. **Holm** over the confirmatory family {H1, H2 clustered, H4} per dataset: India H1
+p_adj < 0.001, H2 0.044, H4 0.081; Rohlik H1 < 0.001, H2 1.0, H4 1.0. Over the 8 DM system
+comparisons: India ETS 0.029, LightGBM 0.023 still significant; Rohlik ETS 0.005; the others not.
+The DM implementation already applies the Harvey-Leybourne-Newbold correction.
+
+**Critic vs the true driver (India).** Each context agent sees one logged multiplier (Weather:
+weather; Calendar: festival x payday; Trend: interest shock); the true driver is the largest when
+it moves demand by >= 10%. Frozen llama3.1 critic, cases with a driver:
+
+| | validation (314 cases) | test (840) |
+|---|---|---|
+| driver agent rated strong / others | 15.9% / 11.9% | 18.7% / 10.4% |
+| difference [95% CI] | +4.0 pp [-1.1, 9.2] | +8.3 pp [5.2, 11.7] |
+| driver agent rated weak / others | 28.7% / 36.1% | 21.2% / 39.9% |
+| multiplier m: driver - others [95% CI] | +0.003 [-0.005, 0.011] | -0.002 [-0.008, 0.003] |
+| driver is the most up-weighted (chance 1/3) | 32.6% | 31.8% |
+
+Reading: the critic partly identifies the true driver (significant on test), but the per-agent
+revisions do not act on it - weights do not move toward the driver. The bottleneck is the
+critique-to-revision step, not only the critic.
+
+## Post-hoc: independent context agents (declared 2026-10-12, validation only)
+Answers "H1/H4 were set up to fail". Step `independent`: each context agent forecasts demand
+DIRECTLY from item identity and its own evidence (LightGBM Tweedie point + quantile band, as the
+Historical agent), with no sales lags and no baseline input; same interface, so run_validation is
+unchanged (tag `independent`). Outputs `reports/<ds>/posthoc/val_independent.csv`. Frozen files
+unchanged (checksums).
+
+| validation h=1 | India frozen | India independent | Rohlik frozen | Rohlik independent |
+|---|---|---|---|---|
+| pooled agent corr (gate < 0.95) | 0.986-1.000 | 0.962-0.986 | 0.994-0.997 | 0.946-0.976 |
+| WITHIN-item agent corr | 0.76-1.00 | -0.04-0.20 | 0.90-0.96 | -0.13-0.08 |
+| context agent WAPE | 0.373-0.383 | 0.382-0.389 | 0.173-0.176 | 0.247-0.257 |
+| consensus WAPE | 0.3770 | 0.3773 | 0.1689 | 0.1972 |
+| H1 rho / AUROC (consensus error) | 0.064 / 0.535 | 0.044 / 0.547 | 0.099 / 0.570 | 0.239 / 0.667 |
+| AUROC band+vol -> +D (consensus error) | 0.599 -> 0.603 | 0.584 -> 0.590 | 0.712 -> 0.712 | 0.722 -> 0.751 |
+| AUROC band+vol -> +D (HISTORICAL error) | 0.595 -> 0.600 | 0.587 -> 0.600 | 0.710 -> 0.710 | 0.711 -> 0.711 |
+
+Reading: independent agents really disagree (within-item correlation near 0) - the pooled gate
+stays high only because item identity sets each item's level. On Rohlik, D then predicts the
+CONSENSUS error much better, but that is the error the weak independent agents add to the
+consensus: as a flag for large errors of the strong Historical forecast, D adds nothing beyond
+band width and volume on either dataset. Disagreement fails as a risk signal even when the agents
+are independent. LLM deliberation on these agents: step `deliberation independent llama3.1 600`.
+
+## Post-hoc: a stronger critic (declared 2026-10-12, validation only)
+Separates "D is weak" from "the critic is weak". Step `deliberation phase2 MODEL 300`: the frozen
+v1 critic + revision prompt on 300 stratified validation cases of the FROZEN agents (a random
+subset of the study's 1,500), once with gemma4 31B (Ollama cloud) and once with the frozen
+llama3.1 8B (all cache hits, 0 new calls). Same cases, same tau. gemma has no constrained decoding
+on the cloud endpoint, so it got the same JSON schema as text after the system prompt
+(`schema_in_prompt`); the prompt itself is unchanged. Outputs
+`reports/<ds>/posthoc/val_deliberation_phase2_*`. 
+
+| validation, 300 cases | India llama3.1 | India gemma4 | Rohlik llama3.1 | Rohlik gemma4 |
+|---|---|---|---|---|
+| WAPE no deliberation | 0.3658 | 0.3658 | 0.1451 | 0.1451 |
+| WAPE always-on | 0.3655 | 0.3625 | 0.1500 | 0.1457 |
+| WAPE selective / random (sd) | 0.3662 / 0.3658 (0.0005) | 0.3652 / 0.3650 (0.0014) | 0.1455 / 0.1465 (0.0011) | 0.1454 / 0.1454 (0.0013) |
+| triggered (64): improved / worsened | 28% / 31% | 53% / 45% | 33% / 28% | 33% / 41% |
+| hold rate (lowest agent) | 53% (historical 37%) | 40% (trend 3.7%) | 55% | 70% |
+| fallback | 0% | 0% | 0.3% | 0% |
+
+Critic vs the true driver on the same India cases with a driver (59): gemma rates the driver
+agent strong 10.2% vs others 2.5% (llama 20.3% vs 11.0%); gemma's revisions move weight toward the
+driver (m driver - others +0.088 [0.017, 0.153]; driver most up-weighted in 54% of cases, chance
+33%), llama's do not (-0.002 [-0.022, 0.019]; 27%).
+
+Reading: a 4x larger critic carries its critique into the revision and deliberating EVERY case
+then helps a little on India (-0.9% WAPE), not on Rohlik. Selecting cases by D is still no better
+than random with either critic, so the trigger, not only the critic, is the bottleneck. Caveat:
+gemma lets the Trend agent hold only 3.7% of the time - near the coercion warning level of the
+hold-rate gate (rules: near 0% means a coercive prompt); with the same prompt llama held 57%.
+
+## Post-hoc: independent agents + the stronger critic, and same-case comparisons (2026-10-12)
+`deliberation independent gemma4:31b-cloud 300` per dataset (tau = 80th percentile of the
+independent agents' own validation D: 0.1030 India, 0.1915 Rohlik), and step `sameCases`
+(`reports/<ds>/posthoc/val_deliberation_same_cases.csv`), which scores every deliberation run
+against the FROZEN systems on the same cases. The first India attempt stopped on an Ollama cloud
+429 ("too many concurrent requests"); the rerun resumed from cache.
+
+| validation, 300 cases | India indep+gemma | Rohlik indep+gemma | India frozen+gemma | Rohlik frozen+gemma |
+|---|---|---|---|---|
+| own consensus | 0.3651 | 0.1736 | 0.3658 | 0.1451 |
+| always-on | 0.3693 | 0.1619 | 0.3625 | 0.1457 |
+| selective / random (sd) | 0.3644 / 0.3655 (0.0027) | 0.1643 / 0.1704 (0.0033) | 0.3652 / 0.3650 (0.0014) | 0.1454 / 0.1454 (0.0013) |
+| triggered improved / worsened | 36% / 59% | 64% / 23% (p = 7e-5) | 53% / 45% | 33% / 41% |
+| frozen consensus, same cases | 0.3700 | 0.1452 | 0.3658 | 0.1451 |
+| frozen LightGBM all features, same cases | 0.3669 | 0.1360 | 0.3545 | 0.1499 |
+| always-on - frozen consensus [95% CI] | -0.0008 [-0.018, 0.015] | +0.0167 [0.0004, 0.0353] | -0.0033 [-0.011, 0.003] | +0.0006 [-0.006, 0.008] |
+| always-on - frozen Historical [95% CI] | -0.0020 [-0.016, 0.010] | +0.0128 [-0.003, 0.031] | -0.0072 [-0.013, -0.002] | -0.0066 [-0.011, -0.001] |
+
+Reading: the only strong deliberation effect (Rohlik, independent agents, 64% improved, selective
+1.8 sd better than random) is REPAIR: the independent agents start 20% worse than the frozen
+consensus, and after deliberation the forecast is still significantly worse than the frozen
+consensus on the same cases. On India, independent agents + gemma make always-on worse. No
+combination of agent design (residual, item-aware, independent), critic (8B, 31B) and trigger
+(D, learned, random, always) beats the frozen consensus by a significant margin, and none beats
+the single all-features LightGBM. The llama3.1 runs on the independent agents follow below.
+
+### llama3.1 critic on the independent agents (600 cases each, 2026-10-13)
+`deliberation independent llama3.1:latest 600` per dataset, then `sameCases`. India was rerun from
+cache (0 new LLM calls, identical numbers) because the first run predated the per-case forecast
+file.
+
+| validation, 600 cases | India indep+llama | Rohlik indep+llama |
+|---|---|---|
+| own consensus | 0.3822 | 0.1754 |
+| always-on | 0.3819 | 0.1757 |
+| selective / random (sd) | 0.3821 / 0.3821 (0.0002) | 0.1752 / 0.1755 (0.0005) |
+| triggered improved / worsened (Wilcoxon p) | 34% / 26% (0.33) | 24% / 21% (0.86) |
+| hold rate (lowest agent) | 53% (Historical 36%) | 59% (Historical 55%) |
+| fallback / clip rate | 0% / 0% | 0.2% / 0.4% |
+| frozen consensus, same cases | 0.3891 | 0.1661 |
+| frozen LightGBM all features, same cases | 0.3775 | 0.1474 |
+| always-on - frozen consensus [95% CI] | -0.0072 [-0.022, 0.005] | +0.0095 [-0.015, 0.041] |
+| always-on - frozen LightGBM [95% CI] | +0.0044 [-0.013, 0.021] | +0.0283 [0.006, 0.053] |
+
+Reading: with the 8B critic, deliberation on independent agents barely moves the forecast (always-on
+changes WAPE by <= 0.0003), selective equals random, and the Rohlik repair seen with gemma does not
+appear. Same agents and prompt, different critic (gemma ran on 300 of these cases, llama on 600): the Rohlik repair appears only with the 31B critic, and neither
+critic makes D a better-than-random trigger. Hold rates (36-66%) rule out a coercive prompt.
+
+## Reproduction of the frozen runs (2026-10-13, nothing frozen modified)
+The frozen pipeline was rerun end to end with the current code into a scratch root: phase 2
+(validation) refit from `features.parquet`, then `final.main(offline=True)` (LLM answers from the
+disk cache only; a miss would be an error). Tables, figures, RUN_LOCK, processed parquets, SQLite and
+MLflow were redirected; the frozen files were only read.
+
+India: config hash `acbb90af8345` (= frozen RUN_LOCK), 0 LLM calls. Byte-identical to the frozen
+files: all 10 tables except `table_latency_llm.csv`, `case_study.json`, and every phase2,
+final_test and backtest1-3 parquet. `table_latency_llm.csv` differs only in the two latency columns
+(cache replay is milliseconds); trigger rates, LLM calls and tokens are identical.
+`oof_baseline.parquet` is a scratch file overwritten by every fit (identical after the phase 2 +
+test fits; afterwards it holds backtest 3's folds).
+
+Rohlik: same result. Config hash `4d5d100636f4` (= frozen RUN_LOCK), 0 LLM calls; every table except
+the latency columns of `table_latency_llm.csv`, `case_study.json` and every phase2, final_test and
+backtest parquet byte-identical. Frozen checksums re-verified afterwards: India 42/42, Rohlik 37/37.
+
+## Post-hoc: trigger signals one by one, and review fixes (2026-10-15)
+Answers a review asking to compare D with historical error, band width and volume as triggers and
+against random at the same call budget. Step `signals` (`eval/posthoc.py`, validation only, stored
+always-on deliberations, 0 LLM calls) -> `reports/<ds>/posthoc/val_trigger_signals.csv`. New
+signal: the Historical agent's trailing 28-day WAPE, recovered from its confidence (1/c - 1).
+Trigger rate 0.2 (the study's budget), 1,000 random draws.
+
+| | India AUROC worst | India rho(gain) | India z vs random | Rohlik AUROC | Rohlik rho(gain) | Rohlik z |
+|---|---|---|---|---|---|---|
+| D | 0.552 | 0.017 | -0.12 | 0.560 | -0.028 | 0.38 |
+| hist band width | 0.593 | 0.030 | 0.04 | 0.730 | -0.014 | 1.01 |
+| volume | 0.606 | -0.007 | 0.45 | 0.704 | -0.017 | 0.60 |
+| hist trailing WAPE | 0.554 | -0.005 | 0.86 | 0.709 | -0.008 | 0.62 |
+| learned (all five) | - | 0.006 | 0.09 | - | -0.040 | -0.96 |
+
+Reading: band width, volume and trailing error are better RISK flags than D, but no signal predicts
+where deliberation HELPS, and none beats random by one sd. Not carried to test: nothing passed on
+validation (rule: tune on validation only).
+
+Paper (`docs/paper/latex/main.tex`, `main_6page.tex`): REDUCE defined as an advisory overstock flag
+(orders 0; simulator has no returns/markdowns; multi-agent systems never trigger it); MARIOD stated
+as reference, not a reproduced baseline; abstract says the efficiency result is fewer calls at
+equivalent accuracy, not an accuracy gain, and names which model wins on which dataset; Chronos
+claims corrected (validation only, not significantly better than the consensus: DM p 0.07/0.26);
+new inventory table (stockout, fill rate, overstock, cost) in H5; trigger-signal paragraph.
+Every 3-decimal number in both .tex files was cross-checked against reports/ CSVs: all trace except
+the item-aware "Historical errors" AUROC 0.595 -> 0.597 (India), which no stored file holds.
+The markdown copies (docs/paper/*.md, paper.md) were not updated.
+
+## Post-hoc: revise without the critic (V-10) and reproducible table rows (2026-10-20)
+Closes the "disable-critic ablation" listed as open above. Step `nocritic 300` (validation only):
+the 300 cases of `deliberation phase2 llama3.1:latest 300`; the with-critic arm replays from the
+LLM cache (0 new calls, numbers identical to the earlier run); the no-critic arm gives each agent
+the other agents' views instead of a critic report (prompt `revise_nocritic_v1.md`, ablation only,
+never used by the study; frozen v1 prompts untouched) with the same bounds and `apply_revision`.
+Outputs `reports/<ds>/posthoc/val_nocritic_300*.csv`. About 1,200 (India) / 900 (Rohlik) new calls.
+
+| validation, 300 cases | India | Rohlik |
+|---|---|---|
+| WAPE none / critic always-on / no-critic always-on | 0.3658 / 0.3655 / 0.3654 | 0.1451 / 0.1500 / 0.1450 |
+| changed cases: critic / no critic | 60% / 2.3% | 58% / 3.0% |
+| critic always-on improved / worsened | 28% / 33% | 28% / 30% |
+| hold rate without critic | 99.4% | 99.0% |
+| no-critic - critic WAPE [95% CI] | -0.0001 [-0.0023, 0.0027] | -0.0051 [-0.0108, 0.0021] |
+| fallback / clip rate without critic | 0% / 0% | 0% / 0% |
+
+Reading: the critic causes almost all revisions, but they improve about as many cases as they
+worsen; removing it changes accuracy by nothing measurable.
+
+Also: step `histerr` (`val_hist_error.csv`) recomputes from stored forecasts the two rows of the
+paper's agent-design table that no file held (within-item correlation = pooled correlation after
+removing item means; AUROC for the Historical agent's worst errors). It reproduces every published
+cell, including item-aware India 0.595 -> 0.597. Paper seed wording corrected: the extra seeds
+covered systems 1-6, not 5-9. Service dependencies (fastapi, uvicorn, python-multipart) are now
+declared; xgboost is imported lazily so the tests run without the `posthoc` extra.
