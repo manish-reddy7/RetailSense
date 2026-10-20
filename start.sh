@@ -6,8 +6,11 @@ cd "$(dirname "$0")"
 
 if [ ! -x .venv/bin/python ]; then
   echo "First run: creating the Python environment..."
-  python3.11 -m venv .venv
-  .venv/bin/python -m pip install -q -e .
+  if command -v uv >/dev/null; then  # uv fetches Python 3.11 itself
+    uv venv -q --python 3.11 .venv && uv pip install -q --python .venv/bin/python -e .
+  else
+    python3.11 -m venv .venv && .venv/bin/python -m pip install -q -e .
+  fi || { rm -rf .venv; echo "Setup failed. Install uv or Python 3.11, then run again."; exit 1; }
 fi
 
 if [ ! -f web/out/index.html ]; then

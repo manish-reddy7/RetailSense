@@ -5,8 +5,16 @@ cd /d "%~dp0"
 
 if not exist .venv\Scripts\python.exe (
   echo First run: creating the Python environment...
-  py -3.11 -m venv .venv || (echo Python 3.11 not found: install it from python.org & pause & exit /b 1)
-  .venv\Scripts\python -m pip install -q -e . || (echo Installing Python packages failed & pause & exit /b 1)
+  rem uv fetches Python 3.11 itself; otherwise a Python 3.11 known to the py launcher
+  where uv >nul 2>nul && (
+    uv venv -q --python 3.11 .venv && uv pip install -q --python .venv\Scripts\python.exe -e .
+  ) || (
+    py -3.11 -m venv .venv && .venv\Scripts\python -m pip install -q -e .
+  ) || (
+    if exist .venv rmdir /s /q .venv
+    echo Setup failed. Install uv ^(docs.astral.sh/uv^) or Python 3.11 ^(python.org^), then run again.
+    pause & exit /b 1
+  )
 )
 
 if not exist web\out\index.html (
