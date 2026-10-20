@@ -17,6 +17,7 @@ from retry_requests import retry
 from retailsense.config import ExperimentCfg, load_experiment
 
 URL = "https://archive-api.open-meteo.com/v1/archive"
+FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 COLS = {"temperature_2m_max": "tmax", "temperature_2m_min": "tmin", "precipitation_sum": "precip"}
 WEATHER_FEATURES = [
     "tmax",
@@ -32,15 +33,16 @@ WEATHER_FEATURES = [
 ]
 
 
-def fetch(cfg: ExperimentCfg, state: str | None = None) -> pd.DataFrame:
+def fetch(cfg: ExperimentCfg, state: str | None = None, url: str = URL) -> pd.DataFrame:
     """Daily observations (date, tmax, tmin, precip) for the state's city (default: the
-    experiment's state). Responses are cached on disk forever."""
+    experiment's state). Responses are cached on disk forever. `url` = FORECAST_URL gives the
+    live forecast instead (retailer runs only; the experiment never uses it)."""
     w = cfg.weather
     lat, lon = w.city[state or cfg.data.state]
     session = requests_cache.CachedSession(cfg.path("cache") / "openmeteo", expire_after=-1)
     client = openmeteo_requests.Client(session=retry(session, retries=5, backoff_factor=0.5))
     r = client.weather_api(
-        URL,
+        url,
         params={
             "latitude": lat,
             "longitude": lon,
@@ -94,13 +96,21 @@ def add_forecast_noise(
     One Gaussian error per target date and variable (sd x that variable's daily SD in `scale`),
     applied to the value, its anomaly and its day-over-day change; flags are recomputed.
     Missing stays missing. Precipitation is clipped at 0."""
-    w = cfg.weather
     dates = rows.date.drop_duplicates().sort_values()
     rng = np.random.default_rng(seed)
     err = pd.DataFrame(
         {c: rng.normal(0, sd * scale[c], len(dates)) for c in ("tmax", "tmin", "precip")},
         index=dates.to_numpy(),
-    ).reindex(rows.date.to_numpy())
+    )
+    return apply_weather_error(rows, err, cfg)
+
+
+def apply_weather_error(rows: pd.DataFrame, err: pd.DataFrame, cfg: ExperimentCfg) -> pd.DataFrame:
+    """Shift each row's target-day weather by err (indexed by date; tmax, tmin, precip), as if it
+    had been forecast with that error: the value, its anomaly and its day-over-day change move
+    together and the flags are recomputed. A NaN error makes the value missing."""
+    w = cfg.weather
+    err = err.reindex(rows.date.to_numpy())
     out = rows.copy()
     for c in ("tmax", "tmin"):
         e = err[c].to_numpy()

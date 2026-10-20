@@ -28,7 +28,7 @@ export default function NextWeekPage() {
     if (!t || !item) return {};
     const of = (sys: string) => rows.filter((r) => r.item_id === item && r.system === sys).sort((a, b) => num(a.h) - num(b.h));
     const dates = of("retailsense").map((r) => String(r.date).slice(5));
-    const color = { deliberate: t.deliberate, brand: t.brand, fast: t.fast };
+    const color = { deliberate: t.deliberate, brand: t.brand, fast: t["chart-4"] };  // ETS: distinct from LightGBM
     return {
       tooltip: { trigger: "axis" },
       grid: { left: 44, right: 16, top: 24, bottom: 32 },
@@ -78,10 +78,10 @@ export default function NextWeekPage() {
   return (
     <>
       <PageHeader
-        eyebrow={`Next week · forecast made at the end of ${madeOn}`}
+        context={`Forecast made at the end of ${madeOn}`}
         title={
           <>
-            What to order for <em className="text-brand">{first.slice(5)}</em> to {last.slice(5)}
+            What to order for {first.slice(5)} to {last.slice(5)}
           </>
         }
       >
@@ -96,14 +96,13 @@ export default function NextWeekPage() {
           const units = r.reduce((a, x) => a + num(x.order_qty), 0);
           const n = r.filter((x) => x.action === "RESTOCK").length;
           return (
-            <Kpi key={sys.id} index={i} tone={sys.tone} label={`${sys.label} · order now`} value={`${units.toLocaleString()} units`} hint={`${n} of ${r.length} items to restock · ${sys.note}`} />
+            <Kpi key={sys.id} index={i} tone={sys.tone} label={`${sys.label}: order now`} value={`${units.toLocaleString()} units`} hint={`${n} of ${r.length} items to restock. ${sys.note}`} />
           );
         })}
       </div>
 
       <Section
-        eyebrow="Forecast"
-        title={`Next 7 days · ${item}`}
+        title={`${item}, next 7 days`}
         description="Lines are each system's daily forecast; shaded areas are its 10-90% band. Pick another item in the sidebar."
       >
         <Legend items={SYSTEMS.map((x) => ({ label: x.label, className: BG[x.tone] }))} />
@@ -115,8 +114,8 @@ export default function NextWeekPage() {
               <p key={sys.id} className="rounded-lg border border-border p-2.5">
                 <span className="font-medium">{sys.label}:</span> {order(r)}
                 <span className="block text-xs text-muted-foreground">
-                  stock {fmt(num(r?.on_hand), 0)} + on order {fmt(num(r?.on_order), 0)} · reorder point {fmt(num(r?.reorder_point), 1)} ·
-                  order-up-to {fmt(num(r?.order_up_to), 1)}
+                  stock {fmt(num(r?.on_hand), 0)} plus {fmt(num(r?.on_order), 0)} on order; reorder at {fmt(num(r?.reorder_point), 1)},
+                  fill up to {fmt(num(r?.order_up_to), 1)}
                 </span>
               </p>
             );
@@ -124,8 +123,8 @@ export default function NextWeekPage() {
         </div>
       </Section>
 
-      <Section eyebrow="Order list" title="Decision per item" description="RESTOCK n = order n units now (whole case packs); arrives after the lead time.">
-        <DataTable rows={list} highlight={(r) => String(r.RetailSense).startsWith("RESTOCK")} />
+      <Section  title="Decision per item" description="RESTOCK n = order n units now (whole case packs); arrives after the lead time.">
+        <DataTable rows={list} highlight={(r) => String(r.RetailSense).startsWith("RESTOCK")} highlightClass="bg-good/10 hover:bg-good/15" />
       </Section>
     </>
   );

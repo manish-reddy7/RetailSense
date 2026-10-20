@@ -56,8 +56,8 @@ function wapeChart(rows: Row[], t: Tokens) {
 function costChart(rows: Row[], t: Tokens) {
   const parts: [string, string, string][] = [
     ["holding_cost", "holding", t.fast],
-    ["ordering_cost", "ordering", t.brand],
-    ["lost_sales_cost", "lost sales", t.deliberate],
+    ["ordering_cost", "ordering", t["chart-5"]],
+    ["lost_sales_cost", "lost sales", t.destructive],
   ];
   return {
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
@@ -103,7 +103,7 @@ function decileChart(rows: { decile: number; mean_rel_err: number; wape: number 
     yAxis: [{ type: "value", name: "mean rel. |error|" }, { type: "value", name: "WAPE", splitLine: { show: false } }],
     series: [
       { name: "mean relative |error|", type: "bar", barWidth: "55%", data: rows.map((r) => r.mean_rel_err), itemStyle: { color: t.brand, opacity: 0.8 } },
-      { name: "WAPE", type: "line", yAxisIndex: 1, data: rows.map((r) => r.wape), itemStyle: { color: t.deliberate }, lineStyle: { color: t.deliberate } },
+      { name: "WAPE", type: "line", yAxisIndex: 1, data: rows.map((r) => r.wape), itemStyle: { color: t.actual }, lineStyle: { color: t.actual } },
     ],
   };
 }
@@ -152,7 +152,7 @@ export default function EvaluatePage() {
 
   return (
     <>
-      <PageHeader eyebrow="Evaluate" title="How the systems compare">
+      <PageHeader title="How the systems compare">
         Every system runs through the same inventory simulator with the same parameters; only the forecasts differ.
       </PageHeader>
 
@@ -180,7 +180,7 @@ export default function EvaluatePage() {
       )}
 
       {tb.table_forecast_metrics && (
-        <Section eyebrow="Accuracy" title="Forecast error, all systems" description="Day-1 WAPE with 95% CI from a bootstrap over items. Amber = RetailSense.">
+        <Section title="Forecast error, all systems" description="Day-1 WAPE with 95% CI from a bootstrap over items. Amber = RetailSense.">
           <EChart option={wapeChart(tb.table_forecast_metrics, t)} height={340} />
           <div className="mt-4">
             <DataTable rows={tb.table_forecast_metrics} highlight={isRS} />
@@ -189,7 +189,7 @@ export default function EvaluatePage() {
       )}
 
       {inv && (
-        <Section eyebrow="Inventory" title="What each forecast costs" description="Total cost split into holding, ordering and lost sales.">
+        <Section title="What each forecast costs" description="Total cost split into holding, ordering and lost sales.">
           <EChart option={costChart(inv, t)} height={340} />
           <div className="mt-4">
             <DataTable rows={inv} highlight={isRS} />
@@ -204,7 +204,7 @@ export default function EvaluatePage() {
           </Section>
         )}
         {curve && (
-          <Section eyebrow="H3 · H4" title="Cost-accuracy curve" description="Deliberating the highest-D cases first vs a random trigger at the same rate (band = ±1 sd).">
+          <Section eyebrow="H3 and H4" title="Cost-accuracy curve" description="Deliberating the highest-D cases first vs a random trigger at the same rate (band = ±1 sd).">
             <EChart option={curveChart(curve, "wape", t)} height={300} />
           </Section>
         )}
@@ -216,7 +216,7 @@ export default function EvaluatePage() {
       )}
 
       {tb.table_backtest && (
-        <Section eyebrow="Robustness" title="Rolling-origin backtest" description="Three earlier 56-day windows, each refit on the days before it.">
+        <Section title="Rolling-origin backtest" description="Three earlier 56-day windows, each refit on the days before it.">
           <EChart option={groupedChart(tb.table_backtest, "window", "system", "h1_WAPE", t, "WAPE (h=1)")} height={320} />
           <div className="mt-4">
             <DataTable rows={tb.table_backtest} highlight={isRS} />
@@ -225,7 +225,7 @@ export default function EvaluatePage() {
       )}
 
       {tb.phase4_sensitivity && (
-        <Section eyebrow="Sensitivity" title="Inventory cost under other settings" description="One parameter at a time around the defaults.">
+        <Section title="Inventory cost under other settings" description="One parameter at a time around the defaults.">
           <Tabs value={param} onValueChange={(v) => setParam(String(v))}>
             <TabsList className="mb-2 flex-wrap">
               {params.map((p) => (
@@ -242,7 +242,7 @@ export default function EvaluatePage() {
       {Object.entries(tb)
         .filter(([name]) => !SHOWN.has(name))
         .map(([name, rows]) => (
-          <Section key={name} eyebrow="Table" title={nice(name.replace(/^table_/, ""))}>
+          <Section key={name} title={nice(name.replace(/^table_/, ""))}>
             <DataTable rows={rows} highlight={isRS} />
           </Section>
         ))}

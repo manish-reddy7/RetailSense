@@ -100,7 +100,9 @@ def openrouter_transport(cfg: ExperimentCfg) -> Transport:
                     j.get("model", d.model),
                     1000 * (time.perf_counter() - t),
                 )
-            transient = r.status_code == 429 or r.status_code >= 500
+            # a daily quota (free tier) does not reset within the backoff: give up at once
+            daily = r.status_code == 429 and "per-day" in r.text
+            transient = (r.status_code == 429 and not daily) or r.status_code >= 500
             if attempt == d.api_retries or not transient:
                 raise RuntimeError(f"OpenRouter {r.status_code}: {r.text[:300]}")
             time.sleep(float(r.headers.get("Retry-After", d.api_backoff_s * 2**attempt)))

@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import {
   BarChart3,
   CalendarClock,
@@ -11,6 +10,7 @@ import {
   MessagesSquare,
   Package,
   Radio,
+  Store as StoreIcon,
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
@@ -26,6 +26,7 @@ const NAV = [
   { href: "/explain", label: "Explain", icon: MessagesSquare },
   { href: "/evaluate", label: "Evaluate", icon: BarChart3 },
   { href: "/live", label: "Live demo", icon: Radio },
+  { href: "/retailer", label: "For retailers", icon: StoreIcon },
 ];
 
 function Picker({
@@ -66,22 +67,52 @@ function Picker({
 
 function Logo() {
   return (
-    <Link href="/" className="flex items-center gap-2.5 px-5 pt-6 pb-5">
-      <span className="grid size-9 place-items-center rounded-xl bg-brand text-primary-foreground shadow-sm">
-        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-          <path d="M4 17c3-6 5-6 8-2s5 4 8-4" strokeLinecap="round" />
-          <circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none" />
-        </svg>
-      </span>
+    <Link href="/" className="flex items-center gap-3 px-5 pt-6 pb-5">
+      {/* a three-member plume: forecasts that leave one point and spread apart */}
+      <svg viewBox="0 0 28 28" className="size-8 shrink-0" fill="none" strokeLinecap="round" aria-hidden>
+        <path d="M3 18 C 10 18, 16 17, 25 6" stroke="var(--deliberate)" strokeWidth="2.2" />
+        <path d="M3 18 C 10 18, 16 18, 25 15" stroke="var(--fast)" strokeWidth="2.2" />
+        <path d="M3 18 C 10 18, 16 19, 25 24" stroke="var(--fast)" strokeWidth="2.2" opacity="0.55" />
+        <circle cx="3" cy="18" r="2" fill="var(--foreground)" />
+      </svg>
       <span>
-        <span className="block font-display text-2xl leading-none">RetailSense</span>
-        <span className="text-[11px] text-muted-foreground">disagreement-triggered forecasting</span>
+        <span className="wide block text-xl leading-none font-bold tracking-tight">RetailSense</span>
+        <span className="text-xs text-muted-foreground">when forecasters disagree</span>
       </span>
     </Link>
   );
 }
 
 export function Shell({ children }: { children: ReactNode }) {
+  const path = usePathname();
+  if (path.startsWith("/retailer")) return <RetailerShell>{children}</RetailerShell>;
+  return <ResearchShell>{children}</ResearchShell>;
+}
+
+/** Retailer pages (the local app): stores, without the research pickers. */
+function RetailerShell({ children }: { children: ReactNode }) {
+  const link = "rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground";
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <header className="flex flex-wrap items-center gap-x-2 border-b border-sidebar-border bg-sidebar pr-4 md:pr-10">
+        <Logo />
+        <nav className="ml-auto flex flex-wrap items-center gap-1 pb-3 text-sm md:pb-0">
+          <Link href="/retailer/" className={link}>
+            My stores
+          </Link>
+          <Link href="/" className={link}>
+            Research results
+          </Link>
+        </nav>
+      </header>
+      <main className="min-w-0 flex-1 px-4 py-6 md:px-10">
+        <div className="mx-auto grid max-w-7xl gap-6">{children}</div>
+      </main>
+    </div>
+  );
+}
+
+function ResearchShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const s = useSelection();
   return (
@@ -90,30 +121,24 @@ export function Shell({ children }: { children: ReactNode }) {
         <Logo />
         <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:overflow-visible">
           {NAV.map(({ href, label, icon: Icon }) => {
-            const active = path === href;
+            const active = (path.replace(/\/$/, "") || "/") === href;
             return (
               <Link
                 key={href}
                 href={href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-                  active ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+                  "flex shrink-0 items-center gap-2.5 border-b-2 px-3 py-2 text-sm transition-colors md:border-b-0 md:border-l-2",
+                  active ? "border-brand font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
-                {active && (
-                  <motion.span
-                    layoutId="nav-active"
-                    className="absolute inset-0 rounded-lg border border-sidebar-border bg-sidebar-accent shadow-xs"
-                    transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                  />
-                )}
-                <Icon className={cn("relative size-4", active && "text-brand")} aria-hidden />
-                <span className="relative">{label}</span>
+                <Icon className={cn("size-4", active && "text-brand")} aria-hidden />
+                <span>{label}</span>
               </Link>
             );
           })}
         </nav>
-        <div className="mx-3 mb-4 grid grid-cols-2 gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent/60 p-3 md:mt-auto md:grid-cols-1">
+        <div className="mx-5 mb-5 grid grid-cols-2 gap-3 border-t border-sidebar-border pt-4 md:mt-auto md:grid-cols-1">
           <p className="eyebrow col-span-full">Viewing</p>
           <Picker
             icon={Database}
@@ -138,8 +163,8 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="flex flex-wrap items-center gap-2 border-b border-border bg-background/80 px-4 py-2.5 backdrop-blur md:sticky md:top-0 md:z-10 md:px-10">
           {s.meta && (
             <>
-              <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase">
-                {s.meta.dataset} · {s.meta.store}
+              <span className="text-sm font-medium">
+                {s.meta.real_data ? "Rohlik" : "India"} study, store {s.meta.store}
               </span>
               <span
                 className={cn(
@@ -151,15 +176,14 @@ export function Shell({ children }: { children: ReactNode }) {
               </span>
             </>
           )}
-          <span className="min-w-0 truncate text-xs text-muted-foreground">{s.meta?.label}</span>
+          <span className="min-w-0 truncate text-xs text-muted-foreground">{s.meta?.label.replaceAll(" · ", ", ")}</span>
           {s.meta && (
             <span className="ml-auto flex flex-wrap gap-1.5 text-[11px]">
-              <span className="num rounded-md border border-border px-1.5 py-0.5 text-muted-foreground">{s.meta.model}</span>
-              <span className="num rounded-md border border-border px-1.5 py-0.5 text-muted-foreground">prompt {s.meta.prompt_version}</span>
+              <span className="text-muted-foreground">critic {s.meta.model}, prompt {s.meta.prompt_version}</span>
               <span
                 className={cn(
                   "num rounded-md border px-1.5 py-0.5",
-                  s.meta.tau_frozen === null ? "border-deliberate/40 text-deliberate" : "border-good/40 text-good",
+                  s.meta.tau_frozen === null ? "border-deliberate/40 text-deliberate-ink" : "border-good/40 text-good",
                 )}
               >
                 τ {s.meta.tau_frozen === null ? "not frozen" : s.meta.tau_frozen.toFixed(4)}
@@ -167,15 +191,9 @@ export function Shell({ children }: { children: ReactNode }) {
             </span>
           )}
         </div>
-        <motion.main
-          key={path}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22 }}
-          className="min-w-0 flex-1 px-4 py-6 md:px-10"
-        >
-          <div className="mx-auto grid max-w-7xl gap-6">{children}</div>
-        </motion.main>
+        <main className="min-w-0 flex-1 px-4 py-8 md:px-10">
+          <div className="mx-auto grid max-w-6xl gap-10">{children}</div>
+        </main>
       </div>
     </div>
   );

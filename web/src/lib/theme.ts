@@ -7,7 +7,7 @@ import { useSyncExternalStore } from "react";
 // through a 1x1 canvas.
 
 const NAMES = ["brand", "fast", "deliberate", "actual", "good", "muted-foreground", "foreground", "border", "card", "grid", "chart-4", "chart-5", "destructive"] as const;
-export type Tokens = Record<(typeof NAMES)[number], string> & { palette: string[]; dark: boolean };
+export type Tokens = Record<(typeof NAMES)[number], string> & { palette: string[]; dark: boolean; font: string };
 
 function resolve(v: string): string {
   const c = document.createElement("canvas");
@@ -31,7 +31,9 @@ function read(): Tokens | undefined {
   const css = getComputedStyle(document.documentElement);
   const t = Object.fromEntries(NAMES.map((n) => [n, resolve(css.getPropertyValue(`--${n}`).trim())])) as unknown as Tokens;
   t.dark = dark;
-  t.palette = [t.brand, t.deliberate, t.fast, t["chart-4"], t.good, t["chart-5"], t.destructive];
+  t.font = css.getPropertyValue("--font-archivo").trim() || "system-ui, sans-serif";
+  // amber (deliberate) is never a default series colour: it only marks deliberation, set explicitly
+  t.palette = [t.brand, t["chart-4"], t["chart-5"], t.good, t.destructive, t.actual];
   cache = { key, t };
   return t;
 }
@@ -57,18 +59,18 @@ export function chartTheme(t: Tokens) {
   return {
     color: t.palette,
     backgroundColor: "transparent",
-    textStyle: { fontFamily: "var(--font-geist-sans), system-ui, sans-serif", color: t.foreground },
-    legend: { textStyle: { color: t["muted-foreground"], fontSize: 11 }, itemWidth: 14, itemHeight: 8, icon: "roundRect" },
+    textStyle: { fontFamily: t.font, color: t.foreground },
+    legend: { textStyle: { color: t["muted-foreground"], fontSize: 11 }, itemWidth: 14, itemHeight: 8, icon: "rect" },
     tooltip: {
       backgroundColor: t.card,
       borderColor: t.border,
       borderWidth: 1,
       textStyle: { color: t.foreground, fontSize: 12 },
-      extraCssText: "border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);",
+      extraCssText: "border-radius:6px;box-shadow:none;",
     },
     categoryAxis: { ...axis, splitLine: { show: false } },
     valueAxis: { ...axis, axisLine: { show: false } },
     line: { symbol: "circle", symbolSize: 5, smooth: false, lineStyle: { width: 2 } },
-    bar: { itemStyle: { borderRadius: [4, 4, 0, 0] } },
+    bar: { itemStyle: { borderRadius: [2, 2, 0, 0] } },
   };
 }

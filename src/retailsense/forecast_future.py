@@ -103,7 +103,9 @@ def agent_table(cfg, df: pd.DataFrame, origin: int):
     tracks = {"historical": track(oof[FKEYS].assign(yhat=oof.baseline))}
     factors = {"historical": hist.key_factors}
     residual = {"calendar": calendar_agent(cfg), "weather": weather_agent(cfg)}
-    residual["trend"] = trend_agent(cfg)
+    trend = trend_agent(cfg)
+    if all(f in df for f in trend.features[1:]):  # no interest data (retailer stores): skipped
+        residual["trend"] = trend
     for name, agent in residual.items():
         print(f"fitting {name} agent ...", flush=True)
         agent.fit(oof)
@@ -153,8 +155,32 @@ def agent_table(cfg, df: pd.DataFrame, origin: int):
     return af, lgbm[["item_id", "origin", "h", "yhat", "lower", "upper"]], actual
 
 
+def without_llm(cfg, cases: list[dict], tau: float, needs_llm: set, error: str) -> list[dict]:
+    """Rerun case by case after an LLM API failure: answers already received replay from the
+    disk cache; from the first case that fails again, every item that needs the LLM gets the
+    fast consensus with the reason recorded (the documented fallback), never a made-up number."""
+    print(f"LLM unavailable ({error[:160]}); finishing with the consensus", flush=True)
+    states, down = [], None
+    for case in cases:
+        if down is None or case["item_id"] not in needs_llm:
+            try:
+                states += run_all(cfg, [case], tau, trigger=None)
+                continue
+            except RuntimeError as e:
+                down = str(e)[:200]
+        states.append({
+            "case": case,
+            "deliberated": False,
+            "fallback": f"LLM unavailable: {down}",
+            "llm_calls": 0,
+            "revisions": [],
+        })
+    return states
+
+
 def retailsense(cfg, af: pd.DataFrame, df: pd.DataFrame, origin: int):
-    """Route every item by D vs the frozen tau, exactly as the system does (no forced arms)."""
+    """Route every item by D vs the frozen tau, exactly as the system does (no forced arms).
+    Returns the forecasts, the per-item routing and each item's graph state (critic, revisions)."""
     h1 = af[af.h == 1].assign(d=origin + 1)
     y = h1.pivot(index=["item_id", "d"], columns="agent", values="forecast")
     c = h1.pivot(index=["item_id", "d"], columns="agent", values="confidence")
@@ -196,7 +222,10 @@ def retailsense(cfg, af: pd.DataFrame, df: pd.DataFrame, origin: int):
         )
     tau = cfg.deliberation.tau
     print(f"routing {len(cases)} items (tau {tau:.4f}); D >= tau goes to the LLM ...", flush=True)
-    states = run_all(cfg, cases, tau, trigger=None)
+    try:
+        states = run_all(cfg, cases, tau, trigger=None)
+    except RuntimeError as e:  # the LLM API gave up (e.g. a quota): finish without it
+        states = without_llm(cfg, cases, tau, set(pts.item_id[pts.D >= tau]), str(e))
     rev = pd.DataFrame(
         [
             {"item_id": c["item_id"], "origin": origin, "agent": r["agent_id"], **r}
@@ -208,7 +237,7 @@ def retailsense(cfg, af: pd.DataFrame, df: pd.DataFrame, origin: int):
     done = [s["case"]["item_id"] for s in states if s["deliberated"]]
     fc = deliberated_system(af, rev, {(i, origin) for i in done})
     pts["deliberated"] = pts.item_id.isin(done)
-    return fc, pts[["item_id", "D", "consensus", "deliberated"]]
+    return fc, pts[["item_id", "D", "consensus", "deliberated"]], states
 
 
 def start_stock(cfg, system: str, items, day: int) -> pd.DataFrame:
@@ -260,7 +289,7 @@ def main() -> None:
     last = origin + max(cfg.agents.horizons)
     df = feature_frame(cfg, last)
     af, lgbm, actual = agent_table(cfg, df, origin)
-    rs, pts = retailsense(cfg, af, df, origin)
+    rs, pts, _ = retailsense(cfg, af, df, origin)
     print("ETS ...", flush=True)
     sales = actual.rename(columns={"y": "sales"})
     e = ets(sales, origin_grid([origin], cfg.agents.horizons, last), cfg).astype({"item_id": str})

@@ -200,6 +200,25 @@ class InventoryCfg(_Strict):
         return self.z_table[self.service_level]
 
 
+class ServiceCfg(_Strict):
+    """configs/service.yaml: the retailer web service (src/retailsense/service)."""
+
+    template: Path  # research config the store runs are built from
+    data_dir: Path
+    llm: dict[str, str]  # overrides deliberation.provider / model / api_key_env
+    val_days: int
+    min_days: int
+    max_items: int
+    max_upload_mb: int
+    archive_lag_days: int
+    forecast_days: int
+    port: int
+
+
+def load_service(path: Path = ROOT / "configs/service.yaml") -> ServiceCfg:
+    return ServiceCfg(**_read(path))
+
+
 def env_value(key: str) -> str:
     """Secret from the environment, else from the gitignored .env file. Never from config."""
     env = ROOT / ".env"

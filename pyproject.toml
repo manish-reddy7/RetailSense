@@ -21,10 +21,18 @@ dependencies = [
     "mlflow>=2.12",
     "streamlit>=1.33",
     "plotly>=5.20",
+    "fastapi>=0.110",           # retailer app (service/)
+    "uvicorn>=0.29",
+    "python-multipart>=0.0.9",  # CSV uploads
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5", "pre-commit>=3.7"]
+posthoc = [  # eval/posthoc.py only: learner comparison, foundation-model baseline
+    "xgboost>=3.0",
+    "torch>=2.14",
+    "chronos-forecasting>=2.3",
+]
 
 [build-system]
 requires = ["setuptools>=69"]

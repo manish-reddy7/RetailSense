@@ -69,7 +69,7 @@ export default function ForecastPage() {
       dataZoom: [{ type: "inside" }, { type: "slider", height: 16, bottom: 8, borderColor: "transparent" }],
       series: [
         { name: "actual", type: "line", data: s.cases.map((x) => x.actual), itemStyle: { color: t.actual }, lineStyle: { color: t.actual, width: 1.5 }, symbol: "none" },
-        { name: "consensus", type: "line", data: s.cases.map((x) => x.consensus), itemStyle: { color: t.fast }, lineStyle: { color: t.fast, type: "dotted" }, symbol: "none" },
+        { name: "consensus", type: "line", data: s.cases.map((x) => x.consensus), itemStyle: { color: t["chart-4"] }, lineStyle: { color: t["chart-4"], type: "dotted" }, symbol: "none" },
         {
           name: "RetailSense final",
           type: "line",
@@ -94,16 +94,16 @@ export default function ForecastPage() {
   return (
     <>
       <PageHeader
-        eyebrow={s.meta?.experiments[s.experiment!]?.label ?? "Forecast"}
+        context={s.meta?.experiments[s.experiment!]?.label}
         title={
           <>
-            {s.item} <span className="text-muted-foreground">on</span> {c.date}
+            {s.item} on {c.date}
           </>
         }
         aside={
           <motion.div key={`${s.item}${c.date}`} initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
             {c.triggered ? (
-              <span className="flex items-center gap-2 rounded-full border border-deliberate/40 bg-deliberate/10 px-3 py-1.5 text-sm font-medium text-deliberate">
+              <span className="flex items-center gap-2 rounded-full border border-deliberate/40 bg-deliberate/10 px-3 py-1.5 text-sm font-medium text-deliberate-ink">
                 <MessagesSquare className="size-4" aria-hidden /> Deliberated
               </span>
             ) : (
@@ -126,7 +126,7 @@ export default function ForecastPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-5">
-        <Section className="xl:col-span-3" eyebrow="Agents" title="What each agent expects" description="Day-1 forecast with its 10-90% band; diamonds show revised values after deliberation.">
+        <Section className="xl:col-span-3" title="What each agent expects" description="Day-1 forecast with its 10-90% band; diamonds show revised values after deliberation.">
           <EChart option={bands} height={330} />
           <Legend
             items={[
@@ -138,10 +138,10 @@ export default function ForecastPage() {
           />
         </Section>
         <div className="grid gap-4 xl:col-span-2">
-          <Section eyebrow="Routing" title="Disagreement" description="Normalised spread of the agents' forecasts against the threshold.">
+          <Section title="Disagreement" description="Normalised spread of the agents' forecasts against the threshold.">
             <Meter D={c.D} tau={c.tau} />
           </Section>
-          <Section eyebrow="Inventory" title="Recommended action">
+          <Section title="Recommended action">
             {inv ? (
               <div className="flex items-center gap-4">
                 <span
@@ -158,8 +158,8 @@ export default function ForecastPage() {
                     {inv.order_qty > 0 && <span className="num text-2xl"> {inv.order_qty.toFixed(0)}</span>}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    position <span className="num">{fmt(inv.on_hand + inv.on_order, 0)}</span> · s <span className="num">{fmt(inv.reorder_point, 1)}</span> · S{" "}
-                    <span className="num">{fmt(inv.order_up_to, 1)}</span>
+                    stock position <span className="num">{fmt(inv.on_hand + inv.on_order, 0)}</span>, reorder at{" "}
+                    <span className="num">{fmt(inv.reorder_point, 1)}</span>, fill up to <span className="num">{fmt(inv.order_up_to, 1)}</span>
                   </p>
                 </div>
               </div>
@@ -170,12 +170,12 @@ export default function ForecastPage() {
         </div>
       </div>
 
-      <Section eyebrow="History" title={`${s.item} over the run`} description="Drag the slider or scroll to zoom. Amber points were deliberated.">
+      <Section title={`${s.item} over the run`} description="Drag the slider or scroll to zoom. Amber points were deliberated.">
         <EChart option={timeline} height={300} />
         <Legend
           items={[
             { label: "actual", className: "bg-actual" },
-            { label: "consensus", className: "bg-fast" },
+            { label: "consensus", className: "bg-chart-4" },
             { label: "RetailSense final", className: "bg-brand" },
             { label: "deliberated", className: "bg-deliberate" },
           ]}

@@ -1,0 +1,18 @@
+# Retailer app, run locally (src/retailsense/service). Every store run uses the research system from
+# `template` unchanged (agents, D, critic, one bounded revision, (s, S) policy); only the LLM and
+# the limits below are set here.
+template: configs/experiment.yaml
+data_dir: data/stores
+
+llm:                        # testing/demo; the frozen study used ollama llama3.1:latest
+  provider: openrouter
+  model: "nvidia/nemotron-3-super-120b-a12b:free"
+  api_key_env: OPENROUTER_API_KEY
+
+val_days: 86                # tau = q80 of D over the store's last 86 days (the validation procedure)
+min_days: 400               # history the store needs: training folds + validation window
+max_items: 300
+max_upload_mb: 50
+archive_lag_days: 7         # Open-Meteo archive trails today by ~5 days; newer days use the forecast API
+forecast_days: 15           # the forecast API reaches 16 days ahead
+port: 8000                  # the app listens on 127.0.0.1 only

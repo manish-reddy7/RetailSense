@@ -32,10 +32,10 @@ export default function ExplainPage() {
   return (
     <>
       <PageHeader
-        eyebrow={`Explain · ${s.item} · ${c.date}`}
+        context={`${s.item} on ${c.date}`}
         title={
           <>
-            Why <span className="num text-brand">{fmt(c.final)}</span> units?
+            Why <span className="num">{fmt(c.final)}</span> units?
           </>
         }
       >
@@ -47,7 +47,7 @@ export default function ExplainPage() {
         {c.agents.map((a, i) => {
           const Icon = ICON[a.id as keyof typeof ICON] ?? History;
           return (
-            <div key={a.id} data-index={i} className="grid content-start gap-3 rounded-xl border border-border bg-card p-4">
+            <div key={a.id} data-index={i} className="grid content-start gap-3 border-t-2 border-foreground/80 pt-3">
               <div className="flex items-center gap-2">
                 <span className="grid size-8 place-items-center rounded-lg bg-brand/10 text-brand">
                   <Icon className="size-4" aria-hidden />
@@ -56,20 +56,20 @@ export default function ExplainPage() {
                 <p className="num ml-auto text-lg">{fmt(a.forecast)}</p>
               </div>
               <p className="num text-xs text-muted-foreground">
-                band {fmt(a.lower)}–{fmt(a.upper)} · confidence {fmt(a.confidence)}
+                band {fmt(a.lower)} to {fmt(a.upper)}, confidence {fmt(a.confidence)}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {a.key_factors.map((k) => (
                   <Chip key={k}>{k.replace(/(\d+\.\d{3})\d+/g, "$1")}</Chip>
                 ))}
               </div>
-              {a.limitations.length > 0 && <p className="text-xs text-deliberate">Limitation: {a.limitations.join("; ")}</p>}
+              {a.limitations.length > 0 && <p className="text-xs text-deliberate-ink">Limitation: {a.limitations.join("; ")}</p>}
             </div>
           );
         })}
       </div>
 
-      <Section eyebrow="Critic" title="Conflict report" description="The critic judges evidence only; its output schema has no numeric field.">
+      <Section title="Conflict report" description="The critic judges evidence only; its output schema has no numeric field.">
         {c.critic ? (
           <div className="grid gap-5">
             {!c.triggered && (
@@ -86,7 +86,7 @@ export default function ExplainPage() {
             </blockquote>
             <div className="grid gap-2 md:grid-cols-2">
               {c.critic.evidence_assessment.map((e) => (
-                <div key={e.agent} className="rounded-xl border border-border p-3">
+                <div key={e.agent} className="border-l-2 border-border py-1 pl-3">
                   <div className="mb-1 flex items-center gap-2">
                     <span className="text-sm font-medium capitalize">{e.agent}</span>
                     <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize", STRENGTH[e.strength])}>
@@ -115,7 +115,6 @@ export default function ExplainPage() {
       </Section>
 
       <Section
-        eyebrow="Revision"
         title="Initial vs revised"
         description={`Consensus ${fmt(c.consensus)} → deliberated ${fmt(c.deliberated)}. Code clips m to [0.25, 2] and each value to the agent's own band.`}
       >
@@ -139,7 +138,7 @@ export default function ExplainPage() {
                       <span className="flex items-center gap-2">
                         {a.id}
                         {a.revised !== null && (
-                          <span className={cn("rounded-full px-1.5 text-[10px] font-medium", held ? "bg-muted text-muted-foreground" : "bg-deliberate/15 text-deliberate")}>
+                          <span className={cn("rounded-full px-1.5 text-[10px] font-medium", held ? "bg-muted text-muted-foreground" : "bg-deliberate/15 text-deliberate-ink")}>
                             {held ? "held" : "moved"}
                           </span>
                         )}
@@ -157,16 +156,14 @@ export default function ExplainPage() {
         </div>
       </Section>
 
-      <Section eyebrow="Policy" title="Why this action">
+      <Section title="Why this action">
         {inv ? (
           <div className="grid gap-4">
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <Chip>IP = {fmt(inv.on_hand, 0)} + {fmt(inv.on_order, 0)} = {fmt(ip, 0)}</Chip>
               <span className="text-muted-foreground">{ip <= inv.reorder_point ? "≤" : ">"}</span>
               <Chip>s = {fmt(inv.reorder_point, 1)}</Chip>
-              <span className="text-muted-foreground">·</span>
               <Chip>S = {fmt(inv.order_up_to, 1)}</Chip>
-              <span className="text-muted-foreground">·</span>
               <Chip>safety stock {fmt(inv.safety_stock, 1)}</Chip>
             </div>
             <p className="text-sm">

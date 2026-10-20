@@ -103,6 +103,34 @@ npm run build                                      # static site in web/out/
 
 Its views are the same four (Forecast, Explain, Evaluate, Live demo), plus an Overview.
 
+### For retailers (`/retailer`)
+
+A local app: it runs on the retailer's own computer, has no accounts, and store data never
+leaves the machine. The retailer adds a store (its town sets the weather and public holidays), uploads a sales
+CSV (`date, item_id, units_sold, price`, at least 400 days), optionally a stock CSV
+(`item_id, on_hand, on_order`) and optionally a Google Trends download (weekly "Interest over
+time", 1-5 search terms, at least 52 weeks; `samples/demo_trends.csv` is a synthetic example for
+the demo data), and get a 7-day forecast and RESTOCK / HOLD / REDUCE order per
+item, with the agents' evidence and the critic's review for items they disagree on.
+
+```bash
+cd web && npm run build && cd ..                   # the app serves web/out/
+# the critic's LLM is set in configs/service.yaml (now OpenRouter; key in .env)
+python -m retailsense.service.app                  # opens http://localhost:8000/retailer/
+```
+
+Each run (`retailsense.service.store_run`) is the research system on the store's own data:
+Historical, Calendar and Weather agents, plus the Trend agent when the store uploaded search
+interest (its terms replace the experiment's keywords), τ = q80 of D over the
+store's last 86 days, one bounded LLM revision, the (s, S) policy with the store's lead time,
+coverage, service level and case pack. Days the weather archive does not cover yet use the
+Open-Meteo forecast issued today. If the LLM API stops answering mid-run (e.g. a free-tier daily
+quota), the run still finishes: items that needed it get the fast consensus, labelled "LLM
+unavailable". Switch the LLM to a hosted API in `configs/service.yaml`
+(`llm.provider: openrouter | google`, `model`, key in `.env`). Stores and runs live in
+`data/stores/` (SQLite + one folder per run). It listens on 127.0.0.1 only and refuses requests
+for any other host name and writes sent from other websites.
+
 MLflow UI: `mlflow ui --backend-store-uri sqlite:///mlflow.db`.
 
 ## Tests

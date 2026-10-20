@@ -20,27 +20,27 @@ export function cell(v: unknown): string {
   return String(v);
 }
 
+/** Page title. `context` is an optional line naming the data shown (an item, a date); it is
+ *  not a section label. */
 export function PageHeader({
-  eyebrow,
+  context,
   title,
   children,
   aside,
 }: {
-  eyebrow: string;
+  context?: ReactNode;
   title: ReactNode;
   children?: ReactNode;
   aside?: ReactNode;
 }) {
   return (
-    <header className="paper rounded-2xl border border-border px-5 py-7 md:px-8">
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="min-w-0 flex-1">
-          <p className="eyebrow">{eyebrow}</p>
-          <h1 className="mt-1 text-4xl leading-tight md:text-5xl">{title}</h1>
-          {children && <div className="mt-2 max-w-3xl text-muted-foreground">{children}</div>}
-        </div>
-        {aside}
+    <header className="flex flex-wrap items-end gap-x-8 gap-y-4 pt-2 pb-2">
+      <div className="min-w-0 flex-1">
+        {context && <p className="text-sm text-muted-foreground">{context}</p>}
+        <h1 className="mt-1 text-[1.75rem] break-words sm:text-[2.25rem] md:text-[2.75rem]">{title}</h1>
+        {children && <div className="measure mt-3 text-muted-foreground">{children}</div>}
       </div>
+      {aside}
     </header>
   );
 }
@@ -75,19 +75,18 @@ export function Kpi({
   spark?: number[];
   index?: number;
 }) {
-  const bar = {
-    brand: "bg-brand",
-    fast: "bg-fast",
-    deliberate: "bg-deliberate",
-    good: "bg-good",
-    muted: "bg-muted-foreground/40",
+  const rule = {
+    brand: "border-brand",
+    fast: "border-fast",
+    deliberate: "border-deliberate",
+    good: "border-good",
+    muted: "border-border",
   }[tone ?? "muted"];
   return (
-    <div data-index={index} className="relative overflow-hidden rounded-xl border border-border bg-card p-4">
-      <span className={cn("absolute inset-y-0 left-0 w-1", bar)} aria-hidden />
-      <p className="eyebrow">{label}</p>
-      <div className="mt-2 flex items-end justify-between gap-2">
-        <p className="num text-3xl leading-none font-medium">{value}</p>
+    <div data-index={index} className={cn("min-w-0 border-t-2 pt-3", rule)}>
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <div className="mt-1 flex items-end justify-between gap-2">
+        <p className="num wide text-[1.75rem] leading-none font-semibold">{value}</p>
         {spark && <Spark values={spark} />}
       </div>
       {hint && <p className="mt-2 text-xs text-muted-foreground">{hint}</p>}
@@ -104,7 +103,7 @@ export function Meter({ D, tau }: { D: number; tau: number }) {
     <div className="grid gap-3">
       <div className="flex items-baseline justify-between">
         <p className="num text-4xl">{D.toFixed(3)}</p>
-        <p className={cn("text-sm font-medium", over ? "text-deliberate" : "text-fast")}>
+        <p className={cn("text-sm font-medium", over ? "text-deliberate-ink" : "text-fast")}>
           {over ? "above τ: deliberate" : "below τ: fast path"}
         </p>
       </div>
@@ -120,7 +119,7 @@ export function Meter({ D, tau }: { D: number; tau: number }) {
         <div className="absolute -top-1.5 -bottom-1.5 w-px bg-foreground/60" style={{ left: pct(tau) }} />
       </div>
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>0 · agents agree</span>
+        <span>0, agents agree</span>
         <span className="num">τ = {tau.toFixed(3)}</span>
         <span>agents disagree</span>
       </div>
@@ -142,11 +141,13 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={cn("min-w-0 rounded-xl border border-border bg-card p-5", className)}>
+    <section className={cn("min-w-0 border-t border-border pt-5", className)}>
       <div className="mb-4">
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h2 className="text-2xl leading-tight">{title}</h2>
-        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        <h2 className="text-[1.375rem]">
+          {eyebrow && <span className="text-muted-foreground">{eyebrow}. </span>}
+          {title}
+        </h2>
+        {description && <p className="measure mt-1.5 text-sm text-muted-foreground">{description}</p>}
       </div>
       {children}
     </section>
@@ -170,17 +171,20 @@ export function Legend({ items }: { items: { label: string; className: string }[
 export function DataTable({
   rows,
   highlight,
+  highlightClass = "bg-deliberate/10 font-medium hover:bg-deliberate/15",
   columns,
 }: {
   rows: Row[];
   highlight?: (r: Row) => boolean;
+  /** amber by default: the highlighted row is the deliberating system */
+  highlightClass?: string;
   columns?: string[];
 }) {
   if (!rows?.length) return <Empty>No rows.</Empty>;
   const cols = columns ?? Object.keys(rows[0]);
   const numeric = (c: string) => typeof rows[0][c] === "number";
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="overflow-x-auto rounded-md border border-border bg-card">
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
@@ -193,7 +197,7 @@ export function DataTable({
         </TableHeader>
         <TableBody>
           {rows.map((r, i) => (
-            <TableRow key={i} className={highlight?.(r) ? "bg-deliberate/10 font-medium hover:bg-deliberate/15" : undefined}>
+            <TableRow key={i} className={highlight?.(r) ? highlightClass : undefined}>
               {cols.map((c) => (
                 <TableCell key={c} className={numeric(c) ? "num text-right" : "whitespace-nowrap"}>
                   {cell(r[c])}

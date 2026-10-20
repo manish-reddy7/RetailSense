@@ -62,15 +62,14 @@ export default function LivePage() {
   return (
     <div className="grid gap-6">
       <PageHeader
-        eyebrow="Live signals"
         title="What the agents would see today"
         aside={
-          <span className="flex items-center gap-2 rounded-full border border-deliberate/40 bg-deliberate/10 px-3 py-1.5 text-sm font-semibold text-deliberate">
-            <Radio className="size-4 animate-pulse" aria-hidden /> DEMO MODE
+          <span className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground">
+            <Radio className="size-4" aria-hidden /> Demo, not a live store
           </span>
         }
       >
-        Today&apos;s live signals are shown next to a <b>replayed</b> item&apos;s stored forecasts from {s.meta.label}.
+        Today&apos;s live signals are shown next to a <b>replayed</b> item&apos;s stored forecasts from {s.meta.label.replaceAll(" · ", ", ")}.
         Models are not re-run here, there is no point-of-sale data, and nothing on this page is a forecast for a real
         store today.
       </PageHeader>
@@ -105,7 +104,7 @@ export default function LivePage() {
                     { type: "value", name: "mm", min: 0 },
                   ],
                   series: [
-                    { name: "max °C", type: "line", data: w.temperature_2m_max, itemStyle: { color: t?.deliberate }, lineStyle: { color: t?.deliberate } },
+                    { name: "max °C", type: "line", data: w.temperature_2m_max, itemStyle: { color: t?.destructive }, lineStyle: { color: t?.destructive } },
                     { name: "min °C", type: "line", data: w.temperature_2m_min, itemStyle: { color: t?.brand }, lineStyle: { color: t?.brand } },
                     { name: "precipitation", type: "bar", yAxisIndex: 1, barWidth: "40%", data: w.precipitation_sum, itemStyle: { color: t?.fast, opacity: 0.55 } },
                   ],
