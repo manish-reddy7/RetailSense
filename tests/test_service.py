@@ -46,6 +46,21 @@ def test_only_this_computer_and_this_app(client):
     assert client.get("/api/stores/999").status_code == 404
 
 
+def test_delete_store(client, tmp_path):
+    keep = client.post("/api/stores", json=STORE).json()["id"]
+    sid = client.post("/api/stores", json=STORE).json()["id"]
+    client.post(f"/api/stores/{sid}/sales", files={"file": ("s.csv", sales_csv())})
+    assert (tmp_path / str(sid) / "sales.csv").exists()
+    svc_app.q("INSERT INTO runs (store_id, status, created) VALUES (?, 'running', 0)", sid)
+    assert client.delete(f"/api/stores/{sid}").status_code == 409  # not while a run uses it
+    svc_app.q("UPDATE runs SET status = 'done' WHERE store_id = ?", sid)
+    assert client.delete(f"/api/stores/{sid}").status_code == 200
+    assert not (tmp_path / str(sid)).exists()
+    assert client.get(f"/api/stores/{sid}").status_code == 404
+    assert not svc_app.q("SELECT 1 FROM runs WHERE store_id = ?", sid)
+    assert client.get(f"/api/stores/{keep}").status_code == 200
+
+
 def test_upload_validation_and_run_guards(client):
     sid = client.post("/api/stores", json=STORE).json()["id"]
     assert client.post(f"/api/stores/{sid}/runs").status_code == 409  # no sales yet

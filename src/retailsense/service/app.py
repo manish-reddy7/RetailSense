@@ -199,6 +199,19 @@ def update_store(s: StoreSettings, store: Store):
     return _store(q("SELECT * FROM stores WHERE id = ?", store["id"])[0])
 
 
+@app.delete("/api/stores/{sid}")
+def delete_store(store: Store):
+    """The store, its uploads and every run's files. Not while a run uses them."""
+    sid = store["id"]
+    if q("SELECT 1 FROM runs WHERE store_id = ? AND status IN ('queued', 'running')", sid):
+        raise HTTPException(409, "wait until this store's run has finished")
+    with db() as con:
+        con.execute("DELETE FROM runs WHERE store_id = ?", (sid,))
+        con.execute("DELETE FROM stores WHERE id = ?", (sid,))
+    shutil.rmtree(store_dir(sid), ignore_errors=True)
+    return {"deleted": sid}
+
+
 async def _upload(file: UploadFile, sid: int, name: str, read) -> dict:
     limit = SVC.max_upload_mb * 2**20
     body = await file.read(limit + 1)

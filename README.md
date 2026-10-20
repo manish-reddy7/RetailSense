@@ -49,6 +49,13 @@ Weather comes from the Open-Meteo historical archive for Mumbai and is fetched a
 `data/cache/openmeteo` automatically. Every API and LLM response is cached on disk under
 `data/cache/`. Sharing that folder lets someone else rebuild the results without any API calls.
 
+**Exact replay of the reported LLM results.** `data/` is not in git. The LLM answers behind
+every reported number are published as `retailsense_llm_cache.zip` on the repository's
+GitHub Releases page. Unzip it into the repository root (it creates `data/cache/llm/`), then
+`bash reproduce.sh --offline` rebuilds the results with zero LLM calls. Without it, the pipeline
+calls the LLM again, and even at temperature 0 the answers can differ slightly across Ollama
+versions and hardware; numbers that use no LLM (systems 1-6) are unaffected.
+
 ## One-command reproduction
 
 ```bash
@@ -113,11 +120,21 @@ time", 1-5 search terms, at least 52 weeks; `samples/demo_trends.csv` is a synth
 the demo data), and get a 7-day forecast and RESTOCK / HOLD / REDUCE order per
 item, with the agents' evidence and the critic's review for items they disagree on.
 
+**Quick start:** install Python 3.11, Node.js and [Ollama](https://ollama.com) (then
+`ollama pull llama3.1`), and run `start.bat` (Windows: double-click) or `bash start.sh`
+(macOS/Linux). The first start creates `.venv`, installs the packages and builds the site; every
+start then opens <http://localhost:8000/retailer/>. By hand:
+
 ```bash
-cd web && npm run build && cd ..                   # the app serves web/out/
-# the critic's LLM is set in configs/service.yaml (now OpenRouter; key in .env)
+cd web && npm ci && npm run build && cd ..         # the app serves web/out/
 python -m retailsense.service.app                  # opens http://localhost:8000/retailer/
 ```
+
+The critic's LLM is set in `configs/service.yaml`: by default the local Ollama `llama3.1` (no
+key, no quota). For a hosted or premium model, set `provider: openrouter` (one key reaches
+OpenAI, Anthropic, Google and others) or `provider: google`, the model id, and put the key in
+`.env`. The model must support JSON-schema output. Stores are deleted (with their uploads and
+runs) under Store settings.
 
 Each run (`retailsense.service.store_run`) is the research system on the store's own data:
 Historical, Calendar and Weather agents, plus the Trend agent when the store uploaded search

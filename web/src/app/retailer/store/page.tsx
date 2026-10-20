@@ -29,6 +29,30 @@ export default function StorePage() {
   );
 }
 
+function DeleteStore({ id, name }: { id: number; name: string }) {
+  const [error, setError] = useState<unknown>(null);
+  const [busy, setBusy] = useState(false);
+  const remove = async () => {
+    if (!window.confirm(`Delete "${name}" with all its uploads and runs? This cannot be undone.`)) return;
+    setBusy(true);
+    try {
+      await api(`/stores/${id}`, { method: "DELETE" });
+      window.location.href = "/retailer/";
+    } catch (e) {
+      setError(e);
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-6 grid gap-2 border-t border-border pt-4">
+      <Button variant="destructive" className="w-fit" disabled={busy} onClick={remove}>
+        Delete store
+      </Button>
+      <FormError error={error} />
+    </div>
+  );
+}
+
 function StoreView() {
   const id = Number(useSearchParams().get("id"));
   const store = useQuery({ queryKey: ["store", id], queryFn: () => api<Store>(`/stores/${id}`), enabled: id > 0, staleTime: 0 });
@@ -123,6 +147,7 @@ function StoreView() {
             await store.refetch();
           }}
         />
+        <DeleteStore id={id} name={s.name} />
       </details>
 
       {(runs.data?.length ?? 0) > 0 && (

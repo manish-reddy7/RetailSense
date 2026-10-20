@@ -4,10 +4,18 @@
 template: configs/experiment.yaml
 data_dir: data/stores
 
-llm:                        # testing/demo; the frozen study used ollama llama3.1:latest
-  provider: openrouter
-  model: "nvidia/nemotron-3-super-120b-a12b:free"
-  api_key_env: OPENROUTER_API_KEY
+llm:                        # the critic's LLM; default = the frozen study's local model (no key)
+  provider: ollama          # needs `ollama serve` and `ollama pull llama3.1`
+  model: llama3.1:latest
+  # A hosted or premium model instead (key in .env, never here); the model must support
+  # JSON-schema output. OpenRouter reaches OpenAI, Anthropic, Google and others with one key:
+  #   provider: openrouter
+  #   model: "<vendor>/<model-id>"     # id from openrouter.ai/models
+  #   api_key_env: OPENROUTER_API_KEY
+  # or Google directly:
+  #   provider: google
+  #   model: "<gemini-model-id>"
+  #   api_key_env: GOOGLE_API_KEY
 
 val_days: 86                # tau = q80 of D over the store's last 86 days (the validation procedure)
 min_days: 400               # history the store needs: training folds + validation window
